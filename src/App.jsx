@@ -258,11 +258,16 @@ const g = {
 // PIXEL ART SVG ICONS (8-bit style)
 // ═══════════════════════════════════════════════════════════════════════════════
 const PX = ({ d, size = 16, color = C.cyan }) => (
-  <svg width={size} height={size} viewBox="0 0 16 16" style= imageRendering: "pixelated", flexShrink: 0  fill={color}>
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 16 16"
+    fill={color}
+    style={{ imageRendering: "pixelated", flexShrink: 0 }}
+  >
     <path d={d} />
   </svg>
 );
-
 const ICONS = {
   scan:     "M2,2h4v2h-2v2h-2v-4zM10,2h4v4h-2v-2h-2v-2zM6,6h4v4h-4v-4zM2,10h2v2h2v2h-4v-4zM12,10h2v4h-4v-2h2v-2z",
   dex:      "M1,4h3v2h2v2h2v-2h2v-2h3v2h-2v2h-2v2h-2v-2h-2v-2h-2v-2zM5,10h2v2h-2v-2zM9,10h2v2h-2v-2z",
