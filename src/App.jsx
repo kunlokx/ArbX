@@ -567,10 +567,28 @@ class ErrorBoundary extends Component {
   componentDidCatch(error, info) { console.error("ErrorBoundary:", error, info); }
   render() {
     if (this.state.error) {
-      return (
-        <div style= ...g.root, alignItems: "center", justifyContent: "center", padding: "40px" >
-          <div style= ...g.card, maxWidth: "480px", borderColor: C.red >
-            <div style= ...g.row, marginBottom: "12px" >
+  return (
+    <div
+      style={{
+        ...g.root,
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "40px",
+      }}
+    >
+      <div
+        style={{
+          ...g.card,
+          maxWidth: "480px",
+          borderColor: C.red,
+        }}
+      >
+        <div
+          style={{
+            ...g.row,
+            marginBottom: "12px",
+          }}
+        >
               <Icon name="warning" size={16} color={C.red} />
               <span style= fontFamily: FONT, fontSize: "12px", color: C.red >TERJADI ERROR</span>
             </div>
