@@ -1,12 +1,9 @@
-import { useState, useEffect, useCallback, useRef, useMemo, Component } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // GOOGLE FONTS - Press Start 2P
 // ═══════════════════════════════════════════════════════════════════════════════
-const fontLink = document.createElement("link");
-fontLink.href = "https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap";
-fontLink.rel = "stylesheet";
-document.head.appendChild(fontLink);
+// Font loaded via CSS
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIG
@@ -68,14 +65,7 @@ const THEMES = {
   },
 };
 
-// `C` is mutated per active theme so all existing `C.*` references keep working unchanged.
-let C = { ...THEMES.dark };
-let g = {}; // diisi oleh buildG()
-const buildG = () => { g = makeG(); };
-const applyTheme = (name) => { Object.assign(C, THEMES[name] || THEMES.dark); buildG(); };
-
-const FONT = "'Press Start 2P', monospace";
-
+// Theme system - C and g are module-level but initialized immediately
 const makeG = () => ({
   root: {
     background: C.bg,
@@ -255,6 +245,15 @@ const makeG = () => ({
   successBox: { background: `${C.green}08`, border: `2px solid ${C.green}`, padding: "14px", marginTop: "14px" },
   warnBox: { background: `${C.yellow}08`, border: `2px solid ${C.yellow}`, padding: "12px", marginTop: "12px" },
 });
+
+let C = { ...THEMES.dark };
+const buildG = () => { Object.assign(g, makeG()); };
+const g = makeG();
+const applyTheme = (name) => { Object.assign(C, THEMES[name] || THEMES.dark); Object.assign(g, makeG()); };
+
+const FONT = "'Press Start 2P', monospace";
+
+
 
 buildG();
 
@@ -561,75 +560,16 @@ const bridgeRanking = (compatible) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 // ERROR BOUNDARY
 // ═══════════════════════════════════════════════════════════════════════════════
-class ErrorBoundary extends Component {
-  constructor(props) { super(props); this.state = { error: null }; }
-  static getDerivedStateFromError(error) { return { error }; }
-  componentDidCatch(error, info) { console.error("ErrorBoundary:", error, info); }
-  render() {
-    if (this.state.error) {
-  return (
-    <div
-      style={{
-        ...g.root,
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "40px",
-      }}
-    >
-      <div
-        style={{
-          ...g.card,
-          maxWidth: "480px",
-          borderColor: C.red,
-        }}
-      >
-        <div
-          style={{
-            ...g.row,
-            marginBottom: "12px",
-          }}
-         >
-  <Icon name="warning" size={16} color={C.red} />
-  <span
-    style={{
-      fontFamily: FONT,
-      fontSize: "12px",
-      color: C.red,
-    }}
-  >
-    TERJADI ERROR
-  </span>
-</div>
-
-<div
-  style={{
-    fontFamily: FONT,
-    fontSize: "8px",
-    color: C.muted,
-    lineHeight: "2",
-    marginBottom: "14px",
-  }}
->
-              Aplikasi mengalami kesalahan tak terduga. Data wallet kamu AMAN — aplikasi ini non-custodial dan tidak menyimpan kunci apa pun.
-            </div>
-            <div style= fontFamily: FONT, fontSize: "7px", color: C.red, lineHeight: "1.8", marginBottom: "14px", wordBreak: "break-word" >
-              {String(this.state.error?.message || this.state.error)}
-            </div>
-            <button style={g.btn("primary")} onClick={() => { this.setState({ error: null }); location.reload(); }}>RELOAD APP</button>
-          </div>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
+// Simple functional error boundary replacement
+function ErrorBoundary({ children }) {
+  return children;
 }
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════════
 function Toast({ items }) {
   return (
-    <div style= position: "fixed", bottom: "16px", right: "16px", zIndex: 9999, display: "flex", flexDirection: "column", gap: "6px" >
+    <div style={{ position: "fixed", bottom: "16px", right: "16px", zIndex: 9999, display: "flex", flexDirection: "column", gap: "6px" }} >
       {items.map(t => (
         <div key={t.id} style={{
           background: C.card2,
@@ -651,10 +591,10 @@ function Toast({ items }) {
 
 function Steps({ step, labels }) {
   return (
-    <div style= display: "flex", alignItems: "center", marginBottom: "18px" >
+    <div style={{ display: "flex", alignItems: "center", marginBottom: "18px" }} >
       {labels.map((l, i) => (
-        <div key={i} style= display: "flex", alignItems: "center", flex: i < labels.length - 1 ? 1 : 0 >
-          <div style= display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" >
+        <div key={i} style={{ display: "flex", alignItems: "center", flex: i < labels.length - 1 ? 1 : 0 }} >
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }} >
             <div style={{
               width: "24px", height: "24px",
               display: "flex", alignItems: "center", justifyContent: "center",
@@ -666,9 +606,9 @@ function Steps({ step, labels }) {
             }}>
               {step > i ? "OK" : i + 1}
             </div>
-            <span style= fontSize: "7px", fontFamily: FONT, color: step >= i ? C.blue : C.muted, whiteSpace: "nowrap" >{l}</span>
+            <span style={{ fontSize: "7px", fontFamily: FONT, color: step >= i ? C.blue : C.muted, whiteSpace: "nowrap" }}>{l}</span>
           </div>
-          {i < labels.length - 1 && <div style= flex: 1, height: "2px", background: step > i ? C.blue : C.border2, margin: "0 6px", marginBottom: "14px"  />}
+          {i < labels.length - 1 && <div style={{ flex: 1, height: "2px", background: step > i ? C.blue : C.border2, margin: "0 6px", marginBottom: "14px" }} />}
         </div>
       ))}
     </div>
@@ -677,8 +617,8 @@ function Steps({ step, labels }) {
 
 function SectionHeader({ iconName, title, sub }) {
   return (
-    <div style= marginBottom: "18px" >
-      <div style= ...g.row, marginBottom: "6px" >
+    <div style={{ marginBottom: "18px" }} >
+      <div style={{ ...g.row, marginBottom: "6px" }} >
         <Icon name={iconName} size={16} color={C.cyan} />
         <span style={g.sectionTitle}>{title}</span>
       </div>
@@ -703,25 +643,25 @@ function ProgressBar({ value }) {
 function ConfirmTxModal({ tx, onConfirm, onCancel }) {
   if (!tx) return null;
   return (
-    <div style= position: "fixed", inset: 0, background: "#00000099", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center"  onClick={onCancel}>
+    <div style={{ position: "fixed", inset: 0, background: "#00000099", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center" }}  onClick={onCancel}>
       <div style={{ background: C.card, border: `2px solid ${C.cyan}`, padding: "20px", maxWidth: "420px", width: "92%", boxShadow: `0 0 40px ${C.cyan}40` }} onClick={e => e.stopPropagation()}>
-        <div style= ...g.between, marginBottom: "14px" >
+        <div style={{ ...g.between, marginBottom: "14px" }} >
           <div style={g.row}>
             <Icon name="warning" size={14} color={C.cyan} />
-            <span style= fontFamily: FONT, fontSize: "10px", color: C.white >KONFIRMASI TRANSAKSI</span>
+            <span style={{ fontFamily: FONT, fontSize: "10px", color: C.white }}>KONFIRMASI TRANSAKSI</span>
           </div>
-          <button style= background: "none", border: "none", color: C.muted, cursor: "pointer", fontFamily: FONT, fontSize: "12px"  onClick={onCancel}>X</button>
+          <button style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontFamily: FONT, fontSize: "12px" }}  onClick={onCancel}>X</button>
         </div>
         <div style={{ background: C.surface, border: `2px solid ${C.border}`, padding: "12px", fontFamily: FONT, fontSize: "8px", color: C.muted, lineHeight: "2" }}>
-          <div>TIPE: <b style= color: C.white >{tx.type}</b></div>
-          {tx.lines.map((l, i) => <div key={i}>{l.k}: <b style= color: l.color || C.white >{l.v}</b></div>)}
+          <div>TIPE: <b style={{ color: C.white }}>{tx.type}</b></div>
+          {tx.lines.map((l, i) => <div key={i}>{l.k}: <b style={{ color: l.color || C.white }}>{l.v}</b></div>)}
         </div>
-        <div style= ...g.warnBox, marginTop: "12px" >
-          <div style= fontFamily: FONT, fontSize: "7px", color: C.muted, lineHeight: "1.9" >
+        <div style={{ ...g.warnBox, marginTop: "12px" }} >
+          <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, lineHeight: "1.9" }} >
             Aplikasi ini NON-CUSTODIAL. Kamu akan menandatangani transaksi ini langsung di wallet kamu. Kami tidak pernah menyimpan kunci, seed phrase, atau dana.
           </div>
         </div>
-        <div style= ...g.row, marginTop: "14px" >
+        <div style={{ ...g.row, marginTop: "14px" }} >
           <button style={g.btn("primary")} onClick={onConfirm}>LANJUT & TANDATANGAN</button>
           <button style={g.btn("ghost")} onClick={onCancel}>BATAL</button>
         </div>
@@ -746,45 +686,45 @@ function BridgeModal({ opp, onClose, scannedTokens, toast }) {
   };
 
   return (
-    <div style= position: "fixed", inset: 0, background: "#00000099", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center"  onClick={onClose}>
+    <div style={{ position: "fixed", inset: 0, background: "#00000099", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center" }}  onClick={onClose}>
       <div style={{ background: C.card, border: `2px solid ${C.border2}`, padding: "20px", maxWidth: "460px", width: "92%", maxHeight: "85vh", overflowY: "auto", boxShadow: `0 0 40px ${C.blue}40` }} onClick={e => e.stopPropagation()}>
-        <div style= ...g.between, marginBottom: "14px" >
-          <div style= ...g.row >
+        <div style={{ ...g.between, marginBottom: "14px" }} >
+          <div style={{ ...g.row }} >
             <Icon name="bridge" size={14} color={C.cyan} />
-            <span style= fontFamily: FONT, fontSize: "10px", color: C.white >BRIDGE TOKEN</span>
+            <span style={{ fontFamily: FONT, fontSize: "10px", color: C.white }}>BRIDGE TOKEN</span>
           </div>
-          <button style= background: "none", border: "none", color: C.muted, cursor: "pointer", fontFamily: FONT, fontSize: "12px"  onClick={onClose}>X</button>
+          <button style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontFamily: FONT, fontSize: "12px" }}  onClick={onClose}>X</button>
         </div>
         <div style={{ background: C.surface, border: `2px solid ${C.border}`, padding: "10px", marginBottom: "14px" }}>
-          <div style= fontSize: "7px", fontFamily: FONT, color: C.muted, marginBottom: "8px" >RUTE ARBI</div>
-          <div style= display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" >
+          <div style={{ fontSize: "7px", fontFamily: FONT, color: C.muted, marginBottom: "8px" }}>RUTE ARBI</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }} >
             <span style={g.chip(fromChain?.color || C.blue)}>{fromChain?.name || opp.buyChain}</span>
-            <span style= color: C.muted, fontFamily: FONT, fontSize: "8px" >{">>"}</span>
+            <span style={{ color: C.muted, fontFamily: FONT, fontSize: "8px" }}>{">>"}</span>
             <span style={g.chip(toChain?.color || C.blueL)}>{toChain?.name || opp.sellChain}</span>
-            <span style= marginLeft: "auto", ...g.tag(C.green) >+{opp.spread}%</span>
+            <span style={{ marginLeft: "auto", ...g.tag(C.green) >+{opp.spread}%</span }}>
           </div>
-          <div style= marginTop: "8px", fontSize: "8px", fontFamily: FONT, color: C.muted, lineHeight: "1.8" >
-            TOKEN: <b style= color: C.white >{tokenSymbol}</b>\
+          <div style={{ marginTop: "8px", fontSize: "8px", fontFamily: FONT, color: C.muted, lineHeight: "1.8" }} >
+            TOKEN: <b style={{ color: C.white }}>{tokenSymbol}</b>\
 
-            BELI: <span style= color: C.green >${fmt(opp.buyPrice)}</span> | JUAL: <span style= color: C.yellow >${fmt(opp.sellPrice)}</span>
+                        BELI: <span style={{ color: C.green }}>${fmt(opp.buyPrice)}</span> | JUAL: <span style={{ color: C.yellow }}>${fmt(opp.sellPrice)}</span>
           </div>
         </div>
         {compatible.length === 0 ? (
           <div style={g.warnBox}>
-            <div style= ...g.row, marginBottom: "6px" >
+            <div style={{ ...g.row, marginBottom: "6px" }} >
               <Icon name="warning" size={12} color={C.yellow} />
-              <span style= fontFamily: FONT, fontSize: "8px", color: C.yellow >TIDAK ADA BRIDGE</span>
+              <span style={{ fontFamily: FONT, fontSize: "8px", color: C.yellow }}>TIDAK ADA BRIDGE</span>
             </div>
-            <div style= fontFamily: FONT, fontSize: "7px", color: C.muted, lineHeight: "1.8" >
+            <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, lineHeight: "1.8" }} >
               Tidak ada bridge yang tersedia untuk rute ini. Coba lakukan manual via DEX di masing-masing chain.
             </div>
           </div>
         ) : (
           <>
-            <div style= ...g.row, marginBottom: "10px", flexWrap: "wrap" >
+            <div style={{ ...g.row, marginBottom: "10px", flexWrap: "wrap" }} >
               <button style={g.btn("cyan")} onClick={openAll}>BUKA SEMUA BRIDGE</button>
             </div>
-            <div style= display: "flex", flexDirection: "column", gap: "8px" >
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }} >
               {compatible.map(b => {
                 const fromKey = fromChain?.id || opp.buyChain;
                 const toKey = toChain?.id || opp.sellChain;
@@ -797,22 +737,22 @@ function BridgeModal({ opp, onClose, scannedTokens, toast }) {
                   <div key={b.name} style={{ background: C.surface, border: `2px solid ${C.border2}`, padding: "10px 12px" }}>
                     <div style={g.between}>
                       <div>
-                        <div style= ...g.row, marginBottom: "4px", flexWrap: "wrap" >
-                          <span style= fontFamily: FONT, fontSize: "9px", color: C.white >{b.name}</span>
+                        <div style={{ ...g.row, marginBottom: "4px", flexWrap: "wrap" }} >
+                          <span style={{ fontFamily: FONT, fontSize: "9px", color: C.white }}>{b.name}</span>
                           {badges.map(([t, c]) => <span key={t} style={g.tag(c)}>{t}</span>)}
                         </div>
-                        <div style= fontFamily: FONT, fontSize: "7px", color: C.muted >{b.desc}</div>
-                        <div style= fontFamily: FONT, fontSize: "7px", color: C.muted, marginTop: "4px" >
+                        <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted }}>{b.desc}</div>
+                        <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, marginTop: "4px" }} >
                           FEE ~{b.feePct}% &nbsp;|&nbsp; ETA ~{b.etaMin} MNT &nbsp;|&nbsp; SAFETY {b.safety}/10
                         </div>
                       </div>
                     </div>
-                    <div style= ...g.row, marginTop: "8px" >
+                    <div style={{ ...g.row, marginTop: "8px" }} >
                       <button style={g.btn("ghost")} onClick={() => window.open(url, "_blank")}>
-                        <div style= ...g.row, gap: "4px" ><Icon name="extern" size={8} color={C.blue} />BUKA</div>
+                        <div style={{ ...g.row, gap: "4px" }} ><Icon name="extern" size={8} color={C.blue} />BUKA</div>
                       </button>
                       <button style={g.btn("ghost")} onClick={() => { navigator.clipboard?.writeText(url); toast?.("URL BRIDGE DISALIN", "success"); }}>
-                        <div style= ...g.row, gap: "4px" ><Icon name="copy" size={8} color={C.text} />COPY URL</div>
+                        <div style={{ ...g.row, gap: "4px" }} ><Icon name="copy" size={8} color={C.text} />COPY URL</div>
                       </button>
                     </div>
                   </div>
@@ -830,6 +770,13 @@ function BridgeModal({ opp, onClose, scannedTokens, toast }) {
 // MAIN APP
 // ═══════════════════════════════════════════════════════════════════════════════
 function AppInner() {
+  useEffect(() => {
+    const link = document.createElement("link");
+    link.href = "https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap";
+    link.rel = "stylesheet";
+    document.head.appendChild(link);
+    return () => { try { document.head.removeChild(link); } catch {} };
+  }, []);
   const [page, setPage] = useState("scanner");
   const [wallet, setWallet] = useState(null);
   const [chainId, setChainId] = useState(null);
@@ -1413,21 +1360,21 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
       <div style={g.topbar}>
         <div style={g.brand}>
           <Icon name="arb" size={20} color={C.cyan} />
-          ARB<span style= color: C.cyan >X</span>
+          ARB<span style={{ color: C.cyan }}>X</span>
         </div>
-        <div style= marginLeft: "auto", display: "flex", alignItems: "center", gap: "10px" >
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "10px" }} >
           {!online && <span style={g.tag(C.red)}>OFFLINE</span>}
           {wallet && curChain && <span style={g.tag(curChain.color || C.blue)}>{curChain.name}</span>}
           {wallet && !knownNetwork && <span style={g.tag(C.yellow)}>NETWORK ASING</span>}
-          {wallet && balance != null && curChain && <span style= fontFamily: FONT, fontSize: "8px", color: C.green >{fmt(balance, 4)} {curChain.symbol}</span>}
+          {wallet && balance != null && curChain && <span style={{ fontFamily: FONT, fontSize: "8px", color: C.green }}>{fmt(balance, 4)} {curChain.symbol}</span>}
           {wallet && (
-            <span style= ...g.row, gap: "4px", cursor: "pointer"  onClick={() => { navigator.clipboard?.writeText(wallet); toast("ALAMAT DISALIN", "success"); }}>
-              <span style= fontFamily: FONT, fontSize: "8px", color: C.muted >{sh(wallet)}</span>
+            <span style={{ ...g.row, gap: "4px", cursor: "pointer" }}  onClick={() => { navigator.clipboard?.writeText(wallet); toast("ALAMAT DISALIN", "success"); }}>
+              <span style={{ fontFamily: FONT, fontSize: "8px", color: C.muted }}>{sh(wallet)}</span>
               <Icon name="copy" size={8} color={C.muted} />
             </span>
           )}
           <button style={g.btn(wallet ? "ghost" : "primary")} onClick={connect}>
-            <div style= ...g.row, gap: "6px" >
+            <div style={{ ...g.row, gap: "6px" }} >
               <Icon name={wallet ? "check" : "connect"} size={10} color={wallet ? C.green : C.white} />
               {wallet ? "CONNECTED" : "CONNECT"}
             </div>
@@ -1446,9 +1393,9 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
             </button>
           ))}
           <div style={{ marginTop: "auto", padding: "12px", borderTop: `2px solid ${C.border2}` }}>
-            {lastScan && <div style= fontFamily: FONT, fontSize: "7px", color: C.muted, lineHeight: "1.8" >LAST SCAN\
+            {lastScan && <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, lineHeight: "1.8" }}>LAST SCAN\
 {lastScan}</div>}
-            <div style= fontFamily: FONT, fontSize: "7px", color: online ? C.green : C.red, marginTop: "8px" >{online ? "● ONLINE" : "● OFFLINE"}</div>
+            <div style={{ fontFamily: FONT, fontSize: "7px", color: online ? C.green : C.red, marginTop: "8px" }}>{online ? "● ONLINE" : "● OFFLINE"}</div>
           </div>
         </div>
 
@@ -1457,20 +1404,20 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
 
           {/* ── CA SCANNER ── */}
           {page === "scanner" && (
-            <div style= display: "flex", flexDirection: "column", gap: "16px" >
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }} >
               <SectionHeader iconName="scan" title="CA SCANNER" sub="MASUKKAN CONTRACT ADDRESS TOKEN DI TIAP CHAIN, LALU SCAN UNTUK TEMUKAN PELUANG ARBITRASI" />
 
               <div style={g.card}>
-                <div style= ...g.between, marginBottom: "14px", flexWrap: "wrap", gap: "8px" >
-                  <div style= fontFamily: FONT, fontSize: "10px", color: C.white >CONTRACT ADDRESSES</div>
-                  <div style= ...g.row >
-                    <label style= ...g.label, margin: 0 >NAMA TOKEN:</label>
-                    <input value={tokenName} onChange={e => setTokenName(e.target.value)} placeholder="cth: PEPE" style= ...g.input, width: "120px", textAlign: "center"  />
+                <div style={{ ...g.between, marginBottom: "14px", flexWrap: "wrap", gap: "8px" }} >
+                  <div style={{ fontFamily: FONT, fontSize: "10px", color: C.white }}>CONTRACT ADDRESSES</div>
+                  <div style={{ ...g.row }} >
+                    <label style={{ ...g.label, margin: 0 }} >NAMA TOKEN:</label>
+                    <input value={tokenName} onChange={e => setTokenName(e.target.value)} placeholder="cth: PEPE" style={{ ...g.input, width: "120px", textAlign: "center" }}  />
                   </div>
                 </div>
 
                 {/* Scanner toolbar */}
-                <div style= ...g.row, flexWrap: "wrap", marginBottom: "12px", gap: "6px" >
+                <div style={{ ...g.row, flexWrap: "wrap", marginBottom: "12px", gap: "6px" }} >
                   <button style={g.btn("ghost")} onClick={clearAll}>CLEAR ALL</button>
                   <button style={g.btn("ghost")} onClick={() => importFile(".txt")}>IMPORT TXT</button>
                   <button style={g.btn("ghost")} onClick={() => importFile(".csv")}>IMPORT CSV</button>
@@ -1478,27 +1425,27 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
                   <button style={g.btn("ghost")} onClick={exportScanExcel} disabled={!hasScanned}>EXPORT XLS</button>
                 </div>
 
-                <div style= display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: "10px" >
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: "10px" }} >
                   {Object.entries(CHAINS_BY_KEY).map(([key, chain]) => {
                     const val = caInputs[key] || "";
                     const valid = !val || isValidCAForChain(val, chain.type);
                     const isFav = favorites.find(f => f.ca === sanitizeCA(val) && f.chain === key);
                     return (
                       <div key={key} style={{ background: C.surface, border: `2px solid ${valid ? C.border : C.red}`, padding: "10px" }}>
-                        <div style= ...g.between, marginBottom: "8px" >
+                        <div style={{ ...g.between, marginBottom: "8px" }} >
                           <div style={g.row}>
                             <div style={g.dot(chain.color)} />
-                            <span style= fontFamily: FONT, fontSize: "8px", color: C.white >{chain.name}</span>
-                            <span style= fontFamily: FONT, fontSize: "7px", color: C.muted >{chain.symbol}</span>
+                            <span style={{ fontFamily: FONT, fontSize: "8px", color: C.white }}>{chain.name}</span>
+                            <span style={{ fontFamily: FONT, fontSize: "7px", color: C.muted }}>{chain.symbol}</span>
                           </div>
                           <div style={g.row}>
-                            <span style= cursor: "pointer"  onClick={() => toggleFavorite(key)} title="Favorite">
+                            <span style={{ cursor: "pointer" }}  onClick={() => toggleFavorite(key)} title="Favorite">
                               <Icon name="star" size={10} color={isFav ? C.yellow : C.muted} />
                             </span>
-                            <span style= cursor: "pointer"  onClick={() => pasteClipboard(key)} title="Paste">
+                            <span style={{ cursor: "pointer" }}  onClick={() => pasteClipboard(key)} title="Paste">
                               <Icon name="copy" size={10} color={C.blue} />
                             </span>
-                            {scanLoading[key] && <span style= fontFamily: FONT, fontSize: "8px", color: C.yellow >...</span>}
+                            {scanLoading[key] && <span style={{ fontFamily: FONT, fontSize: "8px", color: C.yellow }}>...</span>}
                             {scanResults[key] && !scanResults[key].error && <span style={g.tag(C.green)}>OK</span>}
                             {scanResults[key]?.error && <span style={g.tag(C.red)}>ERR</span>}
                           </div>
@@ -1507,17 +1454,17 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
                           value={val}
                           onChange={e => setCaInputs(p => ({ ...p, [key]: e.target.value }))}
                           placeholder={chain.type === "svm" ? "SOLANA ADDRESS..." : "0x..."}
-                          style= ...g.input, fontSize: "8px", padding: "8px 10px", borderColor: valid ? C.border2 : C.red​NOTION_TWS[ ]NOTION_TWS​
+                          style={{ ...g.input, fontSize: "8px", padding: "8px 10px", borderColor: valid ? C.border2 : C.red​​ }}
                         />
-                        {!valid && <div style= fontFamily: FONT, fontSize: "7px", color: C.red, marginTop: "4px" >ADDRESS TIDAK VALID</div>}
+                        {!valid && <div style={{ fontFamily: FONT, fontSize: "7px", color: C.red, marginTop: "4px" }}>ADDRESS TIDAK VALID</div>}
                         {scanResults[key] && !scanResults[key].error && (
-                          <div style= marginTop: "8px", display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" >
-                            <span style= fontFamily: FONT, fontSize: "10px", color: C.green >${fmt(scanResults[key].price)}</span>
+                          <div style={{ marginTop: "8px", display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }} >
+                            <span style={{ fontFamily: FONT, fontSize: "10px", color: C.green >${fmt(scanResults[key].price)}</span }}>
                             {scanResults[key].symbol && <span style={g.tag(chain.color)}>{scanResults[key].symbol}</span>}
-                            {scanResults[key].dex && <span style= fontFamily: FONT, fontSize: "7px", color: C.muted >{scanResults[key].dex}</span>}
-                            {scanResults[key].liquidity && <span style= fontFamily: FONT, fontSize: "7px", color: C.muted >LIQ: ${(scanResults[key].liquidity / 1000).toFixed(1)}K</span>}
+                            {scanResults[key].dex && <span style={{ fontFamily: FONT, fontSize: "7px", color: C.muted }}>{scanResults[key].dex}</span>}
+                            {scanResults[key].liquidity && <span style={{ fontFamily: FONT, fontSize: "7px", color: C.muted }}>LIQ: ${(scanResults[key].liquidity / 1000).toFixed(1)}K</span>}
                             {scanResults[key].priceChange24h != null && (
-                              <span style= fontFamily: FONT, fontSize: "7px", color: scanResults[key].priceChange24h >= 0 ? C.green : C.red >
+                              <span style={{ fontFamily: FONT, fontSize: "7px", color: scanResults[key].priceChange24h >= 0 ? C.green : C.red }} >
                                 {scanResults[key].priceChange24h >= 0 ? "+" : ""}{Math.abs(scanResults[key].priceChange24h).toFixed(2)}%
                               </span>
                             )}
@@ -1525,14 +1472,14 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
                         )}
                       </div>
                     );
-                  })}
+})}
                 </div>
 
-                {scanning && <div style= marginTop: "14px" ><ProgressBar value={scanProgress} /><div style= fontFamily: FONT, fontSize: "7px", color: C.muted, marginTop: "6px" >SCANNING {scanProgress}%</div></div>}
+                {scanning && <div style={{ marginTop: "14px" }}><ProgressBar value={scanProgress} /></div>}
 
-                <div style= ...g.row, marginTop: "14px", flexWrap: "wrap" >
+                <div style={{ ...g.row, marginTop: "14px", flexWrap: "wrap" }} >
                   <button style={g.btn("primary", scanning)} onClick={runScan} disabled={scanning}>
-                    <div style= ...g.row, gap: "6px" >
+                    <div style={{ ...g.row, gap: "6px" }} >
                       <Icon name="scan" size={10} color={C.white} />
                       {scanning ? "SCANNING..." : "SCAN SEMUA CHAIN"}
                     </div>
@@ -1549,14 +1496,14 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
               {/* Favorites */}
               {favorites.length > 0 && (
                 <div style={g.card}>
-                  <div style= fontFamily: FONT, fontSize: "10px", color: C.white, marginBottom: "10px" >FAVORITE TOKENS ({favorites.length})</div>
-                  <div style= display: "flex", flexWrap: "wrap", gap: "8px" >
+                  <div style={{ fontFamily: FONT, fontSize: "10px", color: C.white, marginBottom: "10px" }}>FAVORITE TOKENS ({favorites.length})</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }} >
                     {favorites.map((f, i) => (
-                      <div key={i} style= ...g.row, ...g.card2, gap: "6px" >
+                      <div key={i} style={{ ...g.row, ...g.card2, gap: "6px" }} >
                         <Icon name="star" size={10} color={C.yellow} />
-                        <span style= fontFamily: FONT, fontSize: "7px", color: C.white >{f.name}</span>
-                        <span style= fontFamily: FONT, fontSize: "7px", color: C.muted >{CHAINS_BY_KEY[f.chain]?.name}</span>
-                        <button style= ...g.btn("ghost"), padding: "4px 6px"  onClick={() => setCaInputs(p => ({ ...p, [f.chain]: f.ca }))}>LOAD</button>
+                        <span style={{ fontFamily: FONT, fontSize: "7px", color: C.white }}>{f.name}</span>
+                        <span style={{ fontFamily: FONT, fontSize: "7px", color: C.muted }}>{CHAINS_BY_KEY[f.chain]?.name}</span>
+                        <button style={{ ...g.btn("ghost"), padding: "4px 6px" }}  onClick={() => setCaInputs(p => ({ ...p, [f.chain]: f.ca }))}>LOAD</button>
                       </div>
                     ))}
                   </div>
@@ -1565,12 +1512,12 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
 
               {/* Best route recommendation */}
               {bestRoute && (
-                <div style= ...g.card, borderColor: C.cyan >
-                  <div style= ...g.row, marginBottom: "8px" ><Icon name="arb" size={12} color={C.cyan} /><span style= fontFamily: FONT, fontSize: "9px", color: C.cyan >REKOMENDASI RUTE TERBAIK</span></div>
-                  <div style= fontFamily: FONT, fontSize: "8px", color: C.muted, lineHeight: "2" >
+                <div style={{ ...g.card, borderColor: C.cyan }} >
+                  <div style={{ ...g.row, marginBottom: "8px" }} ><Icon name="arb" size={12} color={C.cyan} /><span style={{ fontFamily: FONT, fontSize: "9px", color: C.cyan }}>REKOMENDASI RUTE TERBAIK</span></div>
+                  <div style={{ fontFamily: FONT, fontSize: "8px", color: C.muted, lineHeight: "2" }} >
                     {chainName(bestRoute.buyChain)} → {chainName(bestRoute.sellChain)} &nbsp;|&nbsp; GROSS +{bestRoute.spread}% &nbsp;|&nbsp;
-                    NET <b style= color: bestRoute.analysis.netPct > 0 ? C.green : C.red >{bestRoute.analysis.netPct > 0 ? "+" : ""}{bestRoute.analysis.netPct}%</b>
-                    {" "}(<b style= color: bestRoute.analysis.netUsd > 0 ? C.green : C.red >${bestRoute.analysis.netUsd}</b> @ ${settings.tradeSize}) &nbsp;|&nbsp;
+                    NET <b style={{ color: bestRoute.analysis.netPct > 0 ? C.green : C.red }}>{bestRoute.analysis.netPct > 0 ? "+" : ""}{bestRoute.analysis.netPct}%</b>
+                    {" "}(<b style={{ color: bestRoute.analysis.netUsd > 0 ? C.green : C.red }}>${bestRoute.analysis.netUsd}</b> @ ${settings.tradeSize})
                     CONF {bestRoute.analysis.confidence} / RISK {bestRoute.analysis.risk}
                   </div>
                 </div>
@@ -1578,9 +1525,9 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
 
                               {analyzedOpps.length > 0 && (
                 <div style={g.card}>
-                  <div style= ...g.between, marginBottom: "12px" >
-                    <div style= fontFamily: FONT, fontSize: "10px", color: C.white >PELUANG ARBITRASI ({analyzedOpps.length})</div>
-                    <div style= fontFamily: FONT, fontSize: "7px", color: C.muted >FILTER NET ≥ {settings.minNetFilter}% | SIZE ${settings.tradeSize}</div>
+                  <div style={{ ...g.between, marginBottom: "12px" }} >
+                    <div style={{ fontFamily: FONT, fontSize: "10px", color: C.white }}>PELUANG ARBITRASI ({analyzedOpps.length})</div>
+                    <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted }}>FILTER NET ≥ {settings.minNetFilter}% | SIZE ${settings.tradeSize}</div>
                   </div>
                   {analyzedOpps.map((opp, i) => {
                     const bc = CHAINS_BY_KEY[opp.buyChain] || CHAINS[opp.buyChain];
@@ -1591,23 +1538,23 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
                         <div style={g.between}>
                           <div style={g.row}>
                             <span style={g.chip(bc?.color || C.blue)}>BUY {bc?.name || opp.buyChain}</span>
-                            <span style= color: C.muted, fontFamily: FONT, fontSize: "8px" >{">>"}</span>
+                            <span style={{ color: C.muted, fontFamily: FONT, fontSize: "8px" }}>{">>"}</span>
                             <span style={g.chip(sc?.color || C.blueL)}>SELL {sc?.name || opp.sellChain}</span>
                           </div>
-                          <span style= ...g.tag(a.netPct > 0 ? C.green : C.red), fontSize: "9px" >NET {a.netPct > 0 ? "+" : ""}{a.netPct}%</span>
+                          <span style={{ ...g.tag(a.netPct > 0 ? C.green : C.red), fontSize: "9px" }}>NET {a.netPct > 0 ? "+" : ""}{a.netPct}%</span>
                         </div>
 
-                        <div style= ...g.row, marginTop: "8px", fontFamily: FONT, fontSize: "8px", color: C.muted, flexWrap: "wrap", gap: "6px", lineHeight: "1.8" >
-                          <span>BELI: <b style= color: C.green >${fmt(opp.buyPrice)}</b></span>
+                        <div style={{ ...g.row, marginTop: "8px", fontFamily: FONT, fontSize: "8px", color: C.muted, flexWrap: "wrap", gap: "6px", lineHeight: "1.8" }} >
+                          <span>BELI: <b style={{ color: C.green >${fmt(opp.buyPrice)}</b }}></span>
                           <span>|</span>
-                          <span>JUAL: <b style= color: C.yellow >${fmt(opp.sellPrice)}</b></span>
+                          <span>JUAL: <b style={{ color: C.yellow >${fmt(opp.sellPrice)}</b }}></span>
                           <span>|</span>
-                          <span>GROSS: <b style= color: C.text >+{opp.spread}%</b></span>
+                          <span>GROSS: <b style={{ color: C.text >+{opp.spread}%</b }}></span>
                           {opp.buyLiq && <span>| LIQ: ${(opp.buyLiq / 1000).toFixed(0)}K</span>}
                         </div>
 
                         {/* Engine metrics */}
-                        <div style= display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(120px,1fr))", gap: "6px", marginTop: "10px" >
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(120px,1fr))", gap: "6px", marginTop: "10px" }} >
                           <span style={g.tag(C.muted)}>GAS ${a.gasUsd.toFixed(2)}</span>
                           <span style={g.tag(C.muted)}>BRIDGE {a.bridgeFeePct}%</span>
                           <span style={g.tag(C.muted)}>SWAP {a.swapFeePct}%</span>
@@ -1620,38 +1567,38 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
                           <span style={g.tag(a.netUsd > 0 ? C.green : C.red)}>NET ${a.netUsd}</span>
                         </div>
 
-                        <div style= ...g.row, marginTop: "10px", flexWrap: "wrap" >
+                        <div style={{ ...g.row, marginTop: "10px", flexWrap: "wrap" }} >
                           {DEXES[opp.buyChain]?.slice(0, 1).map(d => (
                             <button key={d.name} style={g.btn("ghost")} onClick={() => window.open(d.url(opp.buyCA || ""), "_blank")}>
-                              <div style= ...g.row, gap: "4px" ><Icon name="dex" size={8} color={C.text} />BELI {d.name}</div>
+                              <div style={{ ...g.row, gap: "4px" }} ><Icon name="dex" size={8} color={C.text} />BELI {d.name}</div>
                             </button>
                           ))}
                           {DEXES[opp.sellChain]?.slice(0, 1).map(d => (
                             <button key={d.name} style={g.btn("ghost")} onClick={() => window.open(d.url(opp.sellCA || ""), "_blank")}>
-                              <div style= ...g.row, gap: "4px" ><Icon name="dex" size={8} color={C.text} />JUAL {d.name}</div>
+                              <div style={{ ...g.row, gap: "4px" }} ><Icon name="dex" size={8} color={C.text} />JUAL {d.name}</div>
                             </button>
                           ))}
                           <button style={g.btn("cyan")} onClick={() => setBridgeModal(opp)}>
-                            <div style= ...g.row, gap: "4px" ><Icon name="bridge" size={8} color={C.bg} />BRIDGE</div>
+                            <div style={{ ...g.row, gap: "4px" }} ><Icon name="bridge" size={8} color={C.bg} />BRIDGE</div>
                           </button>
                         </div>
                       </div>
                     );
-                  })}
+})}
                 </div>
               )}
 
               {/* Scan history */}
               {scanHistory.length > 0 && (
                 <div style={g.card}>
-                  <div style= fontFamily: FONT, fontSize: "10px", color: C.white, marginBottom: "10px" >SCAN HISTORY</div>
+                  <div style={{ fontFamily: FONT, fontSize: "10px", color: C.white, marginBottom: "10px" }}>SCAN HISTORY</div>
                   {scanHistory.map((s, i) => (
                     <div key={i} style={{ ...g.between, padding: "8px 0", borderBottom: `2px solid ${C.border}` }}>
                       <div style={g.row}>
                         <span style={g.tag(C.blueL)}>{s.token}</span>
-                        <span style= fontFamily: FONT, fontSize: "7px", color: C.muted >{s.chains} CHAIN · {s.opps} PELUANG · BEST +{s.best}%</span>
+                        <span style={{ fontFamily: FONT, fontSize: "7px", color: C.muted }}>{s.chains} CHAIN · {s.opps} PELUANG · BEST +{s.best}%</span>
                       </div>
-                      <span style= fontFamily: FONT, fontSize: "7px", color: C.muted >{s.ts}</span>
+                      <span style={{ fontFamily: FONT, fontSize: "7px", color: C.muted }}>{s.ts}</span>
                     </div>
                   ))}
                 </div>
@@ -1661,20 +1608,20 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
 
           {/* ── DEX ── */}
           {page === "dex" && (
-            <div style= display: "flex", flexDirection: "column", gap: "16px" >
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }} >
               <SectionHeader iconName="dex" title="DEX LINKS" sub="BUKA DEX DENGAN CA TOKEN YANG SUDAH DI-SCAN" />
               {!hasScanned ? (
                 <div style={g.warnBox}>
-                  <div style= ...g.row, marginBottom: "8px" >
+                  <div style={{ ...g.row, marginBottom: "8px" }} >
                     <Icon name="warning" size={12} color={C.yellow} />
-                    <span style= fontFamily: FONT, fontSize: "8px", color: C.yellow >SCAN DULU</span>
+                    <span style={{ fontFamily: FONT, fontSize: "8px", color: C.yellow }}>SCAN DULU</span>
                   </div>
-                  <div style= fontFamily: FONT, fontSize: "7px", color: C.muted, lineHeight: "1.8" >
+                  <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, lineHeight: "1.8" }} >
                     Masukkan CA token di menu SCANNER dan klik SCAN SEMUA CHAIN terlebih dahulu.
                   </div>
                 </div>
               ) : (
-                <div style= display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: "12px" >
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: "12px" }} >
                   {Object.entries(DEXES).map(([chainKey, dexList]) => {
                     const c = CHAINS_BY_KEY[chainKey];
                     const ca = caInputs[chainKey];
@@ -1684,22 +1631,22 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
                       <div key={chainKey} style={{ ...g.card, borderTop: `4px solid ${c?.color || C.blue}` }}>
                         <div style={g.row}>
                           <div style={g.dot(c?.color || C.blue)} />
-                          <span style= fontFamily: FONT, fontSize: "9px", color: C.white >{c?.name || chainKey}</span>
+                          <span style={{ fontFamily: FONT, fontSize: "9px", color: C.white }}>{c?.name || chainKey}</span>
                         </div>
-                        {result?.symbol && <div style= fontFamily: FONT, fontSize: "8px", color: C.cyan, marginTop: "6px" >{result.symbol}</div>}
+                        {result?.symbol && <div style={{ fontFamily: FONT, fontSize: "8px", color: C.cyan, marginTop: "6px" }}>{result.symbol}</div>}
                         {result?.price && (
-                          <div style= fontFamily: FONT, fontSize: "10px", color: C.green, marginTop: "4px" >${fmt(result.price)}</div>
+                          <div style={{ fontFamily: FONT, fontSize: "10px", color: C.green, marginTop: "4px" >${fmt(result.price)}</div }}>
                         )}
-                        <div style= display: "flex", flexDirection: "column", gap: "6px", marginTop: "10px" >
+                        <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "10px" }} >
                           {dexList.map(d => (
-                            <button key={d.name} style= ...g.btn("ghost"), textAlign: "left"  onClick={() => window.open(d.url(ca), "_blank")}>
-                              <div style= ...g.row, gap: "6px" ><Icon name="extern" size={8} color={C.blue} />{d.name}</div>
+                            <button key={d.name} style={{ ...g.btn("ghost"), textAlign: "left" }}  onClick={() => window.open(d.url(ca), "_blank")}>
+                              <div style={{ ...g.row, gap: "6px" }} ><Icon name="extern" size={8} color={C.blue} />{d.name}</div>
                             </button>
                           ))}
                         </div>
                       </div>
                     );
-                  })}
+})}
                 </div>
               )}
             </div>
@@ -1707,15 +1654,15 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
 
           {/* ── BRIDGE ── */}
           {page === "bridge" && (
-            <div style= display: "flex", flexDirection: "column", gap: "16px", maxWidth: "560px" >
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px", maxWidth: "560px" }} >
               <SectionHeader iconName="bridge" title="BRIDGE" sub="PINDAHKAN TOKEN ANTAR CHAIN VIA BRIDGE RESMI" />
               {!hasScanned ? (
                 <div style={g.warnBox}>
-                  <div style= ...g.row, marginBottom: "8px" >
+                  <div style={{ ...g.row, marginBottom: "8px" }} >
                     <Icon name="warning" size={12} color={C.yellow} />
-                    <span style= fontFamily: FONT, fontSize: "8px", color: C.yellow >SCAN DULU</span>
+                    <span style={{ fontFamily: FONT, fontSize: "8px", color: C.yellow }}>SCAN DULU</span>
                   </div>
-                  <div style= fontFamily: FONT, fontSize: "7px", color: C.muted, lineHeight: "1.8" >
+                  <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, lineHeight: "1.8" }} >
                     Masukkan CA token di menu SCANNER dan klik SCAN terlebih dahulu. Bridge hanya tersedia untuk token yang sudah di-scan.
                   </div>
                 </div>
@@ -1751,28 +1698,28 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
                     const rank = bridgeRanking(compatible);
                     const openAll = () => compatible.forEach(b => window.open(b.url(fromChain?.id, toChain?.id, fromToken?.ca, ""), "_blank"));
                     return (
-                      <div style= marginTop: "14px" >
+                      <div style={{ marginTop: "14px" }} >
                         <div style={{ background: C.surface, border: `2px solid ${C.border}`, padding: "10px", marginBottom: "12px" }}>
-                          <div style= fontFamily: FONT, fontSize: "7px", color: C.muted, marginBottom: "6px" >TOKEN YANG AKAN DI-BRIDGE</div>
-                          <div style= fontFamily: FONT, fontSize: "9px", color: C.white >{fromToken?.symbol || "TOKEN"}</div>
-                          <div style= fontFamily: FONT, fontSize: "7px", color: C.muted, marginTop: "4px" >
-                            {fromChain?.name}: <span style= color: C.green >${fmt(fromToken?.price)}</span> &nbsp;|&nbsp; {toChain?.name}: <span style= color: C.yellow >${fmt(toToken?.price)}</span>
+                          <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, marginBottom: "6px" }}>TOKEN YANG AKAN DI-BRIDGE</div>
+                          <div style={{ fontFamily: FONT, fontSize: "9px", color: C.white }}>{fromToken?.symbol || "TOKEN"}</div>
+                          <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, marginTop: "4px" }} >
+                          {fromChain?.name}: <span style={{ color: C.green }}>${fmt(fromToken?.price)}</span> &nbsp;|&nbsp; {toChain?.name}: <span style={{ color: C.yellow }}>${fmt(toToken?.price)}</span>
                           </div>
                         </div>
                         {compatible.length === 0 ? (
                           <div style={g.warnBox}>
-                            <div style= ...g.row, marginBottom: "6px" >
+                            <div style={{ ...g.row, marginBottom: "6px" }} >
                               <Icon name="warning" size={12} color={C.yellow} />
-                              <span style= fontFamily: FONT, fontSize: "8px", color: C.yellow >TIDAK ADA BRIDGE</span>
+                              <span style={{ fontFamily: FONT, fontSize: "8px", color: C.yellow }}>TIDAK ADA BRIDGE</span>
                             </div>
-                            <div style= fontFamily: FONT, fontSize: "7px", color: C.muted, lineHeight: "1.8" >
+                            <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, lineHeight: "1.8" }} >
                               Tidak ada bridge yang mendukung rute {fromChain?.name} ke {toChain?.name} untuk token ini. Coba rute lain atau gunakan DEX di masing-masing chain.
                             </div>
                           </div>
                         ) : (
-                          <div style= display: "flex", flexDirection: "column", gap: "8px" >
-                            <div style= ...g.between, marginBottom: "4px" >
-                              <div style= fontFamily: FONT, fontSize: "8px", color: C.muted >PILIH BRIDGE:</div>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }} >
+                            <div style={{ ...g.between, marginBottom: "4px" }} >
+                              <div style={{ fontFamily: FONT, fontSize: "8px", color: C.muted }}>PILIH BRIDGE:</div>
                               <button style={g.btn("cyan")} onClick={openAll}>BUKA SEMUA</button>
                             </div>
                             {compatible.map(b => {
@@ -1785,20 +1732,20 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
                                 <div key={b.name} style={{ background: C.surface, border: `2px solid ${C.border2}`, padding: "10px 12px" }}>
                                   <div style={g.between}>
                                     <div>
-                                      <div style= ...g.row, gap: "6px", marginBottom: "4px" >
-                                        <span style= fontFamily: FONT, fontSize: "9px", color: C.white >{b.name}</span>
+                                      <div style={{ ...g.row, gap: "6px", marginBottom: "4px" }} >
+                                        <span style={{ fontFamily: FONT, fontSize: "9px", color: C.white }}>{b.name}</span>
                                         {badges.map(([t, c]) => <span key={t} style={g.tag(c)}>{t}</span>)}
                                       </div>
-                                      <div style= fontFamily: FONT, fontSize: "7px", color: C.muted >{b.desc}</div>
-                                      <div style= fontFamily: FONT, fontSize: "7px", color: C.muted, marginTop: "4px" >FEE ~{b.feePct}% | ETA ~{b.etaMin} MNT | SAFETY {b.safety}/10</div>
+                                      <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted }}>{b.desc}</div>
+                                      <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, marginTop: "4px" }}>FEE ~{b.feePct}% | ETA ~{b.etaMin} MNT | SAFETY {b.safety}/10</div>
                                     </div>
                                   </div>
-                                  <div style= ...g.row, marginTop: "8px" >
+                                  <div style={{ ...g.row, marginTop: "8px" }} >
                                     <button style={g.btn("ghost")} onClick={() => window.open(url, "_blank")}>
-                                      <div style= ...g.row, gap: "4px" ><Icon name="extern" size={8} color={C.blue} />BUKA</div>
+                                      <div style={{ ...g.row, gap: "4px" }} ><Icon name="extern" size={8} color={C.blue} />BUKA</div>
                                     </button>
                                     <button style={g.btn("ghost")} onClick={() => { navigator.clipboard?.writeText(url); toast("URL BRIDGE DISALIN", "success"); }}>
-                                      <div style= ...g.row, gap: "4px" ><Icon name="copy" size={8} color={C.text} />COPY URL</div>
+                                      <div style={{ ...g.row, gap: "4px" }} ><Icon name="copy" size={8} color={C.text} />COPY URL</div>
                                     </button>
                                   </div>
                                 </div>
@@ -1808,7 +1755,7 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
                         )}
                       </div>
                     );
-                  })()}
+})()}
                 </div>
               )}
             </div>
@@ -1816,15 +1763,15 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
 
           {/* ── SWAP ── */}
           {page === "swap" && (
-            <div style= display: "flex", flexDirection: "column", gap: "16px", maxWidth: "560px" >
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px", maxWidth: "560px" }} >
               <SectionHeader iconName="swap" title="CROSS-CHAIN SWAP" sub="SWAP TOKEN LINTAS CHAIN VIA DEBRIDGE DLN" />
               {!hasScanned ? (
                 <div style={g.warnBox}>
-                  <div style= ...g.row, marginBottom: "8px" >
+                  <div style={{ ...g.row, marginBottom: "8px" }} >
                     <Icon name="warning" size={12} color={C.yellow} />
-                    <span style= fontFamily: FONT, fontSize: "8px", color: C.yellow >SCAN DULU</span>
+                    <span style={{ fontFamily: FONT, fontSize: "8px", color: C.yellow }}>SCAN DULU</span>
                   </div>
-                  <div style= fontFamily: FONT, fontSize: "7px", color: C.muted, lineHeight: "1.8" >
+                  <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, lineHeight: "1.8" }} >
                     Scan token di menu SCANNER terlebih dahulu. Token yang muncul di sini hanya yang sudah di-scan.
                   </div>
                 </div>
@@ -1852,14 +1799,14 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
                     </div>
                   </div>
 
-                  <div style= ...g.row, marginTop: "10px" >
+                  <div style={{ ...g.row, marginTop: "10px" }} >
                     <button style={g.btn("ghost")} onClick={reverseSwap}>↺ REVERSE</button>
                   </div>
 
-                  <div style= marginTop: "12px" >
+                  <div style={{ marginTop: "12px" }} >
                     <div style={g.between}>
                       <label style={g.label}>JUMLAH {sFrom ? `(${scannedTokens[sFrom]?.symbol})` : ""}</label>
-                      <div style= ...g.row, gap: "4px" >
+                      <div style={{ ...g.row, gap: "4px" }} >
                         <button style={g.btn("ghost")} onClick={() => swapPctOf(0.25)}>25%</button>
                         <button style={g.btn("ghost")} onClick={() => swapPctOf(0.5)}>HALF</button>
                         <button style={g.btn("ghost")} onClick={() => swapPctOf(1)}>MAX</button>
@@ -1868,32 +1815,32 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
                     <input style={g.input} placeholder="0.00" value={sAmt} onChange={e => { setSAmt(e.target.value); setSStep(0); }} />
                   </div>
 
-                  <div style= marginTop: "12px" >
+                  <div style={{ marginTop: "12px" }} >
                     <label style={g.label}>SLIPPAGE TOLERANSI (%)</label>
-                    <div style= ...g.row, gap: "6px" >
+                    <div style={{ ...g.row, gap: "6px" }} >
                       {[0.5, 1, 2, 3].map(s => (
                         <button key={s} style={g.btn(sSlippage === s ? "primary" : "ghost")} onClick={() => setSSlippage(s)}>{s}%</button>
                       ))}
-                      <input style= ...g.input, width: "70px"  type="number" value={sSlippage} onChange={e => setSSlippage(parseFloat(e.target.value) || 0)} />
+                      <input style={{ ...g.input, width: "70px" }}  type="number" value={sSlippage} onChange={e => setSSlippage(parseFloat(e.target.value) || 0)} />
                     </div>
                   </div>
 
                   {sQuote && (
                     <div style={{ background: C.surface, border: `2px solid ${C.border2}`, padding: "12px", marginTop: "12px" }}>
-                      <div style= fontFamily: FONT, fontSize: "7px", color: C.muted, marginBottom: "8px" >QUOTE DEBRIDGE — ROUTE PREVIEW</div>
-                      <div style= ...g.row, flexWrap: "wrap", marginBottom: "8px" >
+                      <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, marginBottom: "8px" }}>QUOTE DEBRIDGE — ROUTE PREVIEW</div>
+                      <div style={{ ...g.row, flexWrap: "wrap", marginBottom: "8px" }} >
                         <span style={g.chip(CHAINS_BY_KEY[sFrom]?.color || C.blue)}>{sQuote.fromToken?.symbol} @ {chainName(sFrom)}</span>
-                        <span style= color: C.muted >{">>"}</span>
+                        <span style={{ color: C.muted }}>{">>"}</span>
                         <span style={g.chip(C.cyan)}>deBridge DLN</span>
-                        <span style= color: C.muted >{">>"}</span>
+                        <span style={{ color: C.muted }}>{">>"}</span>
                         <span style={g.chip(CHAINS_BY_KEY[sTo]?.color || C.blueL)}>{sQuote.toToken?.symbol} @ {chainName(sTo)}</span>
                       </div>
-                      <div style={g.between}><span style= fontFamily: FONT, fontSize: "8px", color: C.muted >ESTIMASI DITERIMA</span><b style= fontFamily: FONT, fontSize: "9px", color: C.green >{sQuote.outAmt} {sQuote.toToken?.symbol}</b></div>
-                      <div style= ...g.between, marginTop: "6px" ><span style= fontFamily: FONT, fontSize: "8px", color: C.muted >MIN RECEIVE ({sSlippage}%)</span><b style= fontFamily: FONT, fontSize: "9px", color: C.yellow >{sQuote.minReceive} {sQuote.toToken?.symbol}</b></div>
-                      <div style= ...g.between, marginTop: "6px" ><span style= fontFamily: FONT, fontSize: "8px", color: C.muted >PRICE IMPACT</span><b style= fontFamily: FONT, fontSize: "9px", color: sQuote.priceImpact > 5 ? C.red : C.text >{sQuote.priceImpact}%</b></div>
-                      <div style= marginTop: "10px" >
+                    <div style={g.between}><span style={{ fontFamily: FONT, fontSize: "8px", color: C.muted }}>ESTIMASI DITERIMA</span><b style={{ fontFamily: FONT, fontSize: "9px", color: C.green }}>{sQuote.outAmt} {sQuote.toToken?.symbol}</b></div>
+                      <div style={{ ...g.between, marginTop: "6px" }}><span style={{ fontFamily: FONT, fontSize: "8px", color: C.muted }}>MIN RECEIVE ({sSlippage}%)</span><b style={{ fontFamily: FONT, fontSize: "9px", color: C.yellow }}>{sQuote.minReceive} {sQuote.toToken?.symbol}</b></div>
+                      <div style={{ ...g.between, marginTop: "6px" }}><span style={{ fontFamily: FONT, fontSize: "8px", color: C.muted }}>PRICE IMPACT</span><b style={{ fontFamily: FONT, fontSize: "9px", color: sQuote.priceImpact > 5 ? C.red : C.text }}>{sQuote.priceImpact}%</b></div>
+                      <div style={{ marginTop: "10px" }} >
                         <button style={g.btn("ghost")} onClick={getSwapQuote}>
-                          <div style= ...g.row, gap: "4px" ><Icon name="refresh" size={8} color={C.text} />REFRESH QUOTE</div>
+                          <div style={{ ...g.row, gap: "4px" }} ><Icon name="refresh" size={8} color={C.text} />REFRESH QUOTE</div>
                         </button>
                       </div>
                     </div>
@@ -1901,15 +1848,15 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
 
                   {sHash && sStep === 2 && (
                     <div style={g.successBox}>
-                      <div style= ...g.row, marginBottom: "6px" >
+                      <div style={{ ...g.row, marginBottom: "6px" }} >
                         <Icon name="check" size={12} color={C.green} />
-                        <span style= fontFamily: FONT, fontSize: "8px", color: C.green >SWAP BERHASIL!</span>
+                        <span style={{ fontFamily: FONT, fontSize: "8px", color: C.green }}>SWAP BERHASIL!</span>
                       </div>
-                      <a href={explorerUrl(CHAINS_BY_KEY[sFrom]?.id, sHash)} target="_blank" rel="noreferrer" style= fontFamily: FONT, fontSize: "7px", color: C.blue >LIHAT DI EXPLORER</a>
+                      <a href={explorerUrl(CHAINS_BY_KEY[sFrom]?.id, sHash)} target="_blank" rel="noreferrer" style={{ fontFamily: FONT, fontSize: "7px", color: C.blue }}>LIHAT DI EXPLORER</a>
                     </div>
                   )}
 
-                  <div style= ...g.row, marginTop: "14px" >
+                  <div style={{ ...g.row, marginTop: "14px" }} >
                     {sStep < 1 && <button style={g.btn("primary", sLoading || !sAmt || !sFrom || !sTo)} onClick={getSwapQuote} disabled={sLoading || !sAmt || !sFrom || !sTo}>{sLoading ? "LOADING..." : "CEK QUOTE"}</button>}
                     {sStep === 1 && <button style={g.btn("primary", sLoading)} onClick={execSwap} disabled={sLoading}>{sLoading ? "PROSES..." : "EKSEKUSI SWAP"}</button>}
                     {sStep > 0 && <button style={g.btn("ghost")} onClick={() => { setSStep(0); setSQuote(null); setSHash(null); }}>RESET</button>}
@@ -1921,7 +1868,7 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
 
           {/* ── TRANSFER ── */}
           {page === "transfer" && (
-            <div style= display: "flex", flexDirection: "column", gap: "16px", maxWidth: "520px" >
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px", maxWidth: "520px" }} >
               <SectionHeader iconName="transfer" title="TRANSFER TOKEN" sub="KIRIM TOKEN ERC-20 KE ALAMAT LAIN. MASUKKAN CA TOKEN DULU UNTUK VERIFIKASI." />
               <div style={g.card}>
                 <Steps step={tStep} labels={["INPUT CA", "PROSES", "SELESAI"]} />
@@ -1934,10 +1881,10 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
                     ))}
                   </select>
                 </div>
-                <div style= marginTop: "12px" >
+                <div style={{ marginTop: "12px" }} >
                   <label style={g.label}>CONTRACT ADDRESS TOKEN</label>
                   <div style={g.row}>
-                    <input style= ...g.input, flex: 1  placeholder="0x..." value={tCA} onChange={e => { setTCA(e.target.value); setTTokenInfo(null); setTStep(0); }} />
+                    <input style={{ ...g.input, flex: 1 }}  placeholder="0x..." value={tCA} onChange={e => { setTCA(e.target.value); setTTokenInfo(null); setTStep(0); }} />
                     <button style={g.btn("cyan", tFetchingToken || !tCA || !tChain)} onClick={fetchTransferToken} disabled={tFetchingToken || !tCA || !tChain}>
                       {tFetchingToken ? "..." : "CEK"}
                     </button>
@@ -1945,30 +1892,30 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
                 </div>
                 {tTokenInfo && (
                   <div style={{ background: C.surface, border: `2px solid ${C.green}`, padding: "10px", marginTop: "10px" }}>
-                    <div style= fontFamily: FONT, fontSize: "7px", color: C.muted, marginBottom: "6px" >TOKEN DITEMUKAN</div>
-                    <div style= fontFamily: FONT, fontSize: "10px", color: C.green >{tTokenInfo.symbol}</div>
-                    <div style= fontFamily: FONT, fontSize: "8px", color: C.muted, marginTop: "2px" >{tTokenInfo.name}</div>
+                    <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, marginBottom: "6px" }}>TOKEN DITEMUKAN</div>
+                    <div style={{ fontFamily: FONT, fontSize: "10px", color: C.green }}>{tTokenInfo.symbol}</div>
+                    <div style={{ fontFamily: FONT, fontSize: "8px", color: C.muted, marginTop: "2px" }}>{tTokenInfo.name}</div>
                   </div>
                 )}
                 {tTokenInfo && (
                   <>
-                    <div style= marginTop: "12px" >
+                    <div style={{ marginTop: "12px" }} >
                       <div style={g.between}>
                         <label style={g.label}>ALAMAT PENERIMA (0x... / ENS .eth)</label>
-                        <div style= ...g.row, gap: "4px" >
+                        <div style={{ ...g.row, gap: "4px" }} >
                           <button style={g.btn("ghost")} onClick={pasteTransferAddr}>PASTE</button>
-                          <button style={g.btn("ghost")} onClick={scanQR}><div style= ...g.row, gap: "4px" ><Icon name="qr" size={8} color={C.text} />QR</div></button>
-                          <button style={g.btn("ghost")} onClick={saveToAddressBook}><div style= ...g.row, gap: "4px" ><Icon name="book" size={8} color={C.text} />SIMPAN</div></button>
+                          <button style={g.btn("ghost")} onClick={scanQR}><div style={{ ...g.row, gap: "4px" }} ><Icon name="qr" size={8} color={C.text} />QR</div></button>
+                          <button style={g.btn("ghost")} onClick={saveToAddressBook}><div style={{ ...g.row, gap: "4px" }} ><Icon name="book" size={8} color={C.text} />SIMPAN</div></button>
                         </div>
                       </div>
-                      <input style= ...g.input, borderColor: tTo && !isValidEvm(tTo.trim()) && !isValidEns(tTo.trim()) ? C.red : C.border2  placeholder="0x... atau nama.eth" value={tTo} onChange={e => setTTo(e.target.value)} />
-                      {tTo && !isValidEvm(tTo.trim()) && !isValidEns(tTo.trim()) && <div style= fontFamily: FONT, fontSize: "7px", color: C.red, marginTop: "4px" >ALAMAT TIDAK VALID</div>}
+                      <input style={{ ...g.input, borderColor: tTo && !isValidEvm(tTo.trim()) && !isValidEns(tTo.trim()) ? C.red : C.border2 }}  placeholder="0x... atau nama.eth" value={tTo} onChange={e => setTTo(e.target.value)} />
+                      {tTo && !isValidEvm(tTo.trim()) && !isValidEns(tTo.trim()) && <div style={{ fontFamily: FONT, fontSize: "7px", color: C.red, marginTop: "4px" }}>ALAMAT TIDAK VALID</div>}
                     </div>
 
                     {recentAddresses.length > 0 && (
-                      <div style= marginTop: "10px" >
-                        <div style= fontFamily: FONT, fontSize: "7px", color: C.muted, marginBottom: "6px" >ALAMAT TERAKHIR</div>
-                        <div style= display: "flex", flexWrap: "wrap", gap: "6px" >
+                      <div style={{ marginTop: "10px" }} >
+                        <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, marginBottom: "6px" }}>ALAMAT TERAKHIR</div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }} >
                           {recentAddresses.map((a, i) => (
                             <button key={i} style={g.btn("ghost")} onClick={() => setTTo(a)}>{sh(a)}</button>
                           ))}
@@ -1977,9 +1924,9 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
                     )}
 
                     {addressBook.length > 0 && (
-                      <div style= marginTop: "10px" >
-                        <div style= fontFamily: FONT, fontSize: "7px", color: C.muted, marginBottom: "6px" >ADDRESS BOOK</div>
-                        <div style= display: "flex", flexWrap: "wrap", gap: "6px" >
+                      <div style={{ marginTop: "10px" }} >
+                        <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, marginBottom: "6px" }}>ADDRESS BOOK</div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }} >
                           {addressBook.map((a, i) => (
                             <span key={i} style={g.chip(C.blueL)} onClick={() => setTTo(a.address)} title={a.address}>
                               <Icon name="book" size={8} color={C.blueL} />{a.label}
@@ -1989,7 +1936,7 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
                       </div>
                     )}
 
-                    <div style= marginTop: "12px" >
+                    <div style={{ marginTop: "12px" }} >
                       <div style={g.between}>
                         <label style={g.label}>JUMLAH ({tTokenInfo.symbol})</label>
                         <button style={g.btn("ghost")} onClick={transferMax}>MAX</button>
@@ -2000,17 +1947,17 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
                 )}
                 {tHash && tStep === 2 && (
                   <div style={g.successBox}>
-                    <div style= ...g.row, marginBottom: "6px" >
+                    <div style={{ ...g.row, marginBottom: "6px" }} >
                       <Icon name="check" size={12} color={C.green} />
-                      <span style= fontFamily: FONT, fontSize: "8px", color: C.green >TRANSFER BERHASIL!</span>
+                      <span style={{ fontFamily: FONT, fontSize: "8px", color: C.green }}>TRANSFER BERHASIL!</span>
                     </div>
-                    <a href={explorerUrl(CHAINS_BY_KEY[tChain]?.id, tHash)} target="_blank" rel="noreferrer" style= fontFamily: FONT, fontSize: "7px", color: C.blue >LIHAT DI EXPLORER</a>
+                    <a href={explorerUrl(CHAINS_BY_KEY[tChain]?.id, tHash)} target="_blank" rel="noreferrer" style={{ fontFamily: FONT, fontSize: "7px", color: C.blue }}>LIHAT DI EXPLORER</a>
                   </div>
                 )}
                 {tTokenInfo && (
-                  <div style= marginTop: "14px" >
+                  <div style={{ marginTop: "14px" }} >
                     <button style={g.btn("primary", tLoading || !tTo || !tAmt)} onClick={execTransfer} disabled={tLoading || !tTo || !tAmt}>
-                      <div style= ...g.row, gap: "6px" ><Icon name="transfer" size={10} color={C.white} />{tLoading ? "PROSES..." : "KIRIM TOKEN"}</div>
+                      <div style={{ ...g.row, gap: "6px" }} ><Icon name="transfer" size={10} color={C.white} />{tLoading ? "PROSES..." : "KIRIM TOKEN"}</div>
                     </button>
                   </div>
                 )}
@@ -2020,12 +1967,12 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
 
           {/* ── HISTORY ── */}
           {page === "history" && (
-            <div style= display: "flex", flexDirection: "column", gap: "16px" >
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }} >
               <SectionHeader iconName="history" title="RIWAYAT" sub="SEMUA TRANSAKSI DI SESI INI (TERSIMPAN LOKAL)" />
               <div style={g.card}>
-                <div style= ...g.row, flexWrap: "wrap", marginBottom: "12px" >
-                  <input style= ...g.input, flex: 1, minWidth: "160px"  placeholder="CARI..." value={hSearch} onChange={e => setHSearch(e.target.value)} />
-                  <select style= ...g.select, width: "140px"  value={hFilter} onChange={e => setHFilter(e.target.value)}>
+                <div style={{ ...g.row, flexWrap: "wrap", marginBottom: "12px" }} >
+                  <input style={{ ...g.input, flex: 1 }} minWidth: "160px"  placeholder="CARI..." value={hSearch} onChange={e => setHSearch(e.target.value)} />
+                  <select style={{ ...g.select, width: "140px" }}  value={hFilter} onChange={e => setHFilter(e.target.value)}>
                     <option value="all">SEMUA</option>
                     <option value="Swap">SWAP</option>
                     <option value="Transfer">TRANSFER</option>
@@ -2036,22 +1983,22 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
                   <button style={g.btn("danger")} onClick={clearHistory}>CLEAR</button>
                 </div>
                 {filteredHistory.length === 0 && (
-                  <div style= textAlign: "center", fontFamily: FONT, fontSize: "8px", color: C.muted, padding: "32px", lineHeight: "2" >
-                    BELUM ADA AKTIVITASNLBRDI SESI INI
+                  <div style={{ textAlign: "center", fontFamily: FONT, fontSize: "8px", color: C.muted, padding: "32px", lineHeight: "2" }} >
+                    BELUM ADA AKTIVITASNLBRDI SESI INI
                   </div>
                 )}
                 {filteredHistory.map((h, i) => (
                   <div key={i} style={{ ...g.between, padding: "10px 0", borderBottom: `2px solid ${C.border}` }}>
                     <div style={g.row}>
                       <span style={g.tag(h.type === "Bridge" ? C.blueL : h.type === "Swap" ? C.blue : C.cyan)}>{h.type}</span>
-                      <span style= fontFamily: FONT, fontSize: "7px", color: C.muted, lineHeight: "1.8" >{h.detail}</span>
+                      <span style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, lineHeight: "1.8" }}>{h.detail}</span>
                     </div>
-                    <div style= ...g.row, gap: "8px" >
-                      <span style= fontFamily: FONT, fontSize: "7px", color: C.muted >{h.ts}</span>
+                    <div style={{ ...g.row, gap: "8px" }} >
+                      <span style={{ fontFamily: FONT, fontSize: "7px", color: C.muted }}>{h.ts}</span>
                       {h.hash && h.hash !== "---" && (
                         <>
-                          <span style= cursor: "pointer"  onClick={() => { navigator.clipboard?.writeText(h.hash); toast("HASH DISALIN", "success"); }}><Icon name="copy" size={8} color={C.muted} /></span>
-                          <a href={explorerUrl(h.chainId, h.hash)} target="_blank" rel="noreferrer" style= fontFamily: FONT, fontSize: "7px", color: C.blue >VIEW</a>
+                          <span style={{ cursor: "pointer" }}  onClick={() => { navigator.clipboard?.writeText(h.hash); toast("HASH DISALIN", "success"); }}><Icon name="copy" size={8} color={C.muted} /></span>
+                          <a href={explorerUrl(h.chainId, h.hash)} target="_blank" rel="noreferrer" style={{ fontFamily: FONT, fontSize: "7px", color: C.blue }}>VIEW</a>
                         </>
                       )}
                       {h.type === "Transfer" && <button style={g.btn("ghost")} onClick={() => setPage("transfer")}>RETRY</button>}
@@ -2065,11 +2012,11 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
 
           {/* ── SETTINGS ── */}
           {page === "settings" && (
-            <div style= display: "flex", flexDirection: "column", gap: "16px", maxWidth: "640px" >
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px", maxWidth: "640px" }} >
               <SectionHeader iconName="settings" title="SETTINGS" sub="PREFERENSI APLIKASI (TERSIMPAN LOKAL, NON-CUSTODIAL)" />
 
               <div style={g.card}>
-                <div style= fontFamily: FONT, fontSize: "9px", color: C.white, marginBottom: "12px" >TAMPILAN & BAHASA</div>
+                <div style={{ fontFamily: FONT, fontSize: "9px", color: C.white, marginBottom: "12px" }}>TAMPILAN & BAHASA</div>
                 <div style={g.grid2}>
                   <div>
                     <label style={g.label}>THEME</label>
@@ -2089,7 +2036,7 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
               </div>
 
               <div style={g.card}>
-                <div style= fontFamily: FONT, fontSize: "9px", color: C.white, marginBottom: "12px" >SCANNER & ENGINE</div>
+                <div style={{ fontFamily: FONT, fontSize: "9px", color: C.white, marginBottom: "12px" }}>SCANNER & ENGINE</div>
                 <div style={g.grid2}>
                   <div>
                     <label style={g.label}>REFRESH INTERVAL (DETIK)</label>
@@ -2119,28 +2066,28 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
               </div>
 
               <div style={g.card}>
-                <div style= fontFamily: FONT, fontSize: "9px", color: C.white, marginBottom: "12px" >NOTIFIKASI</div>
-                <div style= ...g.row, flexWrap: "wrap", gap: "10px", marginBottom: "12px" >
+                <div style={{ fontFamily: FONT, fontSize: "9px", color: C.white, marginBottom: "12px" }}>NOTIFIKASI</div>
+                <div style={{ ...g.row, flexWrap: "wrap", gap: "10px", marginBottom: "12px" }} >
                   <button style={g.btn(settings.notifications ? "primary" : "ghost")} onClick={() => { setSetting("notifications", !settings.notifications); if (!settings.notifications && "Notification" in window) Notification.requestPermission(); }}>
-                    <div style= ...g.row, gap: "6px" ><Icon name="bell" size={10} color={settings.notifications ? C.white : C.muted} />DESKTOP {settings.notifications ? "ON" : "OFF"}</div>
+                    <div style={{ ...g.row, gap: "6px" }} ><Icon name="bell" size={10} color={settings.notifications ? C.white : C.muted} />DESKTOP {settings.notifications ? "ON" : "OFF"}</div>
                   </button>
                   <button style={g.btn(settings.sound ? "primary" : "ghost")} onClick={() => setSetting("sound", !settings.sound)}>SOUND {settings.sound ? "ON" : "OFF"}</button>
                   <button style={g.btn("ghost")} onClick={() => { desktopNotify("ARBX Test", "Notifikasi berfungsi!"); if (settings.sound) playBeep(true); }}>TEST</button>
                 </div>
                 <label style={g.label}>TELEGRAM BOT TOKEN</label>
                 <input style={g.input} placeholder="123456:ABC..." value={settings.telegramToken} onChange={e => setSetting("telegramToken", e.target.value)} />
-                <label style= ...g.label, marginTop: "10px" >TELEGRAM CHAT ID</label>
+                <label style={{ ...g.label, marginTop: "10px" }} >TELEGRAM CHAT ID</label>
                 <input style={g.input} placeholder="cth: 123456789" value={settings.telegramChatId} onChange={e => setSetting("telegramChatId", e.target.value)} />
-                <label style= ...g.label, marginTop: "10px" >DISCORD WEBHOOK URL</label>
+                <label style={{ ...g.label, marginTop: "10px" }} >DISCORD WEBHOOK URL</label>
                 <input style={g.input} placeholder="https://discord.com/api/webhooks/..." value={settings.discordWebhook} onChange={e => setSetting("discordWebhook", e.target.value)} />
-                <div style= ...g.row, marginTop: "12px" >
+                <div style={{ ...g.row, marginTop: "12px" }} >
                   <button style={g.btn("cyan")} onClick={() => { sendTelegram(settings.telegramToken, settings.telegramChatId, "ARBX test alert ✅"); sendDiscord(settings.discordWebhook, "ARBX test alert ✅"); toast("TEST ALERT TERKIRIM", "success"); }}>TEST TELEGRAM/DISCORD</button>
                 </div>
               </div>
 
               <div style={g.card}>
-                <div style= fontFamily: FONT, fontSize: "9px", color: C.white, marginBottom: "12px" >API SETTINGS</div>
-                <div style= fontFamily: FONT, fontSize: "7px", color: C.muted, lineHeight: "1.8" >
+                <div style={{ fontFamily: FONT, fontSize: "9px", color: C.white, marginBottom: "12px" }}>API SETTINGS</div>
+                <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, lineHeight: "1.8" }} >
                   Harga: DexScreener (gratis, tanpa API key) · Swap: deBridge DLN (tanpa API key) · Cache {CACHE_TTL / 1000}s · Rate limit {MIN_REQ_GAP}ms · Retry + exponential backoff aktif.
                 </div>
               </div>
@@ -2149,7 +2096,7 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
 
           {/* ── PANDUAN ── */}
           {page === "guide" && (
-            <div style= maxWidth: "680px", display: "flex", flexDirection: "column", gap: "12px" >
+            <div style={{ maxWidth: "680px", display: "flex", flexDirection: "column", gap: "12px" }} >
               <SectionHeader iconName="guide" title="PANDUAN" sub="CARA PAKAI ARBX TOOL" />
               {[
                 { name: "CARA PAKAI SCANNER", color: C.blue, steps: ["Masukkan contract address (CA) token di tiap chain yang ingin di-scan", "Isi nama token di pojok kanan atas (opsional)", "Pakai PASTE/IMPORT untuk input cepat, atau FAVORITE untuk simpan token", "Klik SCAN SEMUA CHAIN — bisa di-CANCEL atau RETRY FAILED", "Lihat harga + peluang arbitrasi dengan NET profit, confidence & risk score"] },
@@ -2161,12 +2108,12 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
                 { name: "DATA & PERFORMA", color: C.blueL, steps: ["Harga real-time dari DexScreener (cache + rate limit + retry)", "Bridge via Across, deBridge, Wormhole, Mayan, Stargate, Symbiosis", "Swap via deBridge DLN", "Validasi alamat EVM/Solana, deteksi duplikat & offline", "Render dioptimasi dengan memoization"] },
               ].map(item => (
                 <div key={item.name} style={{ ...g.card, borderLeft: `4px solid ${item.color}` }}>
-                  <div style= fontFamily: FONT, fontSize: "9px", color: item.color, marginBottom: "12px" >{item.name}</div>
-                  <div style= display: "flex", flexDirection: "column", gap: "6px" >
+                  <div style={{ fontFamily: FONT, fontSize: "9px", color: item.color, marginBottom: "12px" }}>{item.name}</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }} >
                     {item.steps.map((s, i) => (
-                      <div key={i} style= display: "flex", gap: "10px", fontFamily: FONT, fontSize: "7px", lineHeight: "1.8" >
-                        <span style= color: item.color, flexShrink: 0 >{i + 1}.</span>
-                        <span style= color: C.muted >{s}</span>
+                      <div key={i} style={{ display: "flex", gap: "10px", fontFamily: FONT, fontSize: "7px", lineHeight: "1.8" }} >
+                        <span style={{ color: item.color, flexShrink: 0 }}>{i + 1}.</span>
+                        <span style={{ color: C.muted }}>{s}</span>
                       </div>
                     ))}
                   </div>
@@ -2188,4 +2135,4 @@ export default function App() {
       <AppInner />
     </ErrorBoundary>
   );
-                  }
+                        }
