@@ -1,92 +1,298 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CONFIG — Gabungan kedua app (semua chain dari ca-arb-tool + evm chains dari arbx)
+// GOOGLE FONTS - Press Start 2P
+// ═══════════════════════════════════════════════════════════════════════════════
+const fontLink = document.createElement("link");
+fontLink.href = "https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap";
+fontLink.rel = "stylesheet";
+document.head.appendChild(fontLink);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONFIG
 // ═══════════════════════════════════════════════════════════════════════════════
 const CHAINS_BY_KEY = {
-  ethereum: { id:1,     name:"Ethereum",  symbol:"ETH",  color:"#627EEA", explorer:"https://etherscan.io",    dexscreener:"ethereum",   native:"ETH",  nativeAddr:"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", decimals:18, type:"evm", dex:"ethereum"  },
-  bsc:      { id:56,    name:"BSC",       symbol:"BNB",  color:"#F3BA2F", explorer:"https://bscscan.com",     dexscreener:"bsc",        native:"BNB",  nativeAddr:"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", decimals:18, type:"evm", dex:"bsc"       },
+  ethereum: { id:1,     name:"Ethereum",  symbol:"ETH",  color:"#4F8EF7", explorer:"https://etherscan.io",    dexscreener:"ethereum",   native:"ETH",  nativeAddr:"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", decimals:18, type:"evm", dex:"ethereum"  },
+  bsc:      { id:56,    name:"BSC",       symbol:"BNB",  color:"#7AB3F7", explorer:"https://bscscan.com",     dexscreener:"bsc",        native:"BNB",  nativeAddr:"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", decimals:18, type:"evm", dex:"bsc"       },
   base:     { id:8453,  name:"Base",      symbol:"ETH",  color:"#0052FF", explorer:"https://basescan.org",    dexscreener:"base",       native:"ETH",  nativeAddr:"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", decimals:18, type:"evm", dex:"base"      },
   arbitrum: { id:42161, name:"Arbitrum",  symbol:"ETH",  color:"#12AAFF", explorer:"https://arbiscan.io",     dexscreener:"arbitrum",   native:"ETH",  nativeAddr:"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", decimals:18, type:"evm", dex:"arbitrum"  },
   polygon:  { id:137,   name:"Polygon",   symbol:"MATIC",color:"#8247E5", explorer:"https://polygonscan.com", dexscreener:"polygon",    native:"MATIC",nativeAddr:"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", decimals:18, type:"evm", dex:"polygon"   },
-  avalanche:{ id:43114, name:"Avalanche", symbol:"AVAX", color:"#E84142", explorer:"https://snowtrace.io",    dexscreener:"avalanche",  native:"AVAX", nativeAddr:"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", decimals:18, type:"evm", dex:"avalanche" },
-  hyperevm: { id:999,   name:"HyperEVM",  symbol:"HYPE", color:"#00E5BE", explorer:"https://hyperevm.explorer.io", dexscreener:"hyperliquid", native:"HYPE",nativeAddr:"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", decimals:18, type:"evm", dex:"hyperliquid"},
-  nesa:     { id:41443, name:"Nesa",      symbol:"NES",  color:"#FF6B35", explorer:"https://explorer.nesa.ai",dexscreener:"nesa",       native:"NES",  nativeAddr:"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", decimals:18, type:"evm", dex:"nesa"      },
-  solana:   { id:null,  name:"Solana",    symbol:"SOL",  color:"#9945FF", explorer:"https://solscan.io/token",dexscreener:"solana",     native:"SOL",  nativeAddr:"So11111111111111111111111111111111111111112", decimals:9,  type:"svm", dex:"solana"    },
+  avalanche:{ id:43114, name:"Avalanche", symbol:"AVAX", color:"#3B82F6", explorer:"https://snowtrace.io",    dexscreener:"avalanche",  native:"AVAX", nativeAddr:"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", decimals:18, type:"evm", dex:"avalanche" },
+  hyperevm: { id:999,   name:"HyperEVM",  symbol:"HYPE", color:"#60A5FA", explorer:"https://hyperevm.explorer.io", dexscreener:"hyperliquid", native:"HYPE",nativeAddr:"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", decimals:18, type:"evm", dex:"hyperliquid"},
+  nesa:     { id:41443, name:"Nesa",      symbol:"NES",  color:"#93C5FD", explorer:"https://explorer.nesa.ai",dexscreener:"nesa",       native:"NES",  nativeAddr:"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", decimals:18, type:"evm", dex:"nesa"      },
+  solana:   { id:null,  name:"Solana",    symbol:"SOL",  color:"#BFDBFE", explorer:"https://solscan.io/token",dexscreener:"solana",     native:"SOL",  nativeAddr:"So11111111111111111111111111111111111111112", decimals:9,  type:"svm", dex:"solana"    },
 };
 
-// Lookup by numeric ID juga (untuk compatibility arbx)
 const CHAINS = { ...CHAINS_BY_KEY, 1:CHAINS_BY_KEY.ethereum, 56:CHAINS_BY_KEY.bsc, 8453:CHAINS_BY_KEY.base, 42161:CHAINS_BY_KEY.arbitrum, 137:CHAINS_BY_KEY.polygon, 43114:CHAINS_BY_KEY.avalanche, sol:CHAINS_BY_KEY.solana };
 
-const TOKEN_ADDRS = {
-  USDC: { 1:"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", 56:"0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", 8453:"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", 42161:"0xaf88d065e77c8cC2239327C5EDb3A432268e5831", 137:"0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174", 43114:"0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E" },
-  USDT: { 1:"0xdAC17F958D2ee523a2206206994597C13D831ec7", 56:"0x55d398326f99059fF775485246999027B3197955", 42161:"0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9", 137:"0xc2132D05D31c914a87C6611C10748AEb04B58e8F" },
-  WETH:  { 1:"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", 8453:"0x4200000000000000000000000000000000000006", 42161:"0x82aF49447D8a07e3bd95BD0d56f35241523fBab1", 137:"0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619" },
-};
-
 const BRIDGES = [
-  { name:"Across",    icon:"🌉", supports:["evm"],       desc:"EVM tercepat, fee rendah",       url:(f,t,tok,amt)=>`https://across.to/?from=${f}&to=${t}&asset=${tok}&amount=${amt}` },
-  { name:"deBridge",  icon:"🔗", supports:["evm","svm"], desc:"EVM + Solana, any token",        url:(f,t,tok)=>`https://app.debridge.finance/?inputChain=${f}&outputChain=${t}&inputCurrency=${tok}` },
-  { name:"Wormhole",  icon:"🌀", supports:["evm","svm"], desc:"Cross semua chain + Solana",     url:()=>`https://portalbridge.com/#/transfer` },
-  { name:"Mayan",     icon:"🔱", supports:["evm","svm"], desc:"Solana ↔ EVM terbaik",          url:(f,t,tok)=>`https://swap.mayan.finance/?fromChain=${f}&toChain=${t}&from=${tok}` },
-  { name:"Stargate",  icon:"⭐", supports:["evm"],       desc:"USDC/USDT stablecoin bridge",    url:(f,t,tok)=>`https://stargate.finance/transfer?srcChain=${f}&dstChain=${t}&srcToken=${tok}` },
-  { name:"Symbiosis", icon:"♾️", supports:["evm","svm"], desc:"Multi-chain incl. Nesa & HyperEVM", url:(f,t,tok)=>`https://app.symbiosis.finance/swap?chainIn=${f}&chainOut=${t}&tokenIn=${tok}` },
+  { name:"deBridge",  supports:["evm","svm"], desc:"EVM + Solana, any token",           url:(f,t,tok)=>`https://app.debridge.finance/?inputChain=${f}&outputChain=${t}&inputCurrency=${tok}` },
+  { name:"Wormhole",  supports:["evm","svm"], desc:"Cross semua chain + Solana",         url:()=>`https://portalbridge.com/#/transfer` },
+  { name:"Mayan",     supports:["evm","svm"], desc:"Solana ke EVM terbaik",              url:(f,t,tok)=>`https://swap.mayan.finance/?fromChain=${f}&toChain=${t}&from=${tok}` },
+  { name:"Across",    supports:["evm"],       desc:"EVM tercepat, fee rendah",           url:(f,t,tok,amt)=>`https://across.to/?from=${f}&to=${t}&asset=${tok}&amount=${amt}` },
+  { name:"Stargate",  supports:["evm"],       desc:"Stablecoin bridge terbaik",          url:(f,t,tok)=>`https://stargate.finance/transfer?srcChain=${f}&dstChain=${t}&srcToken=${tok}` },
+  { name:"Symbiosis", supports:["evm","svm"], desc:"Multi-chain incl Nesa & HyperEVM",  url:(f,t,tok)=>`https://app.symbiosis.finance/swap?chainIn=${f}&chainOut=${t}&tokenIn=${tok}` },
 ];
 
 const DEXES = {
-  ethereum: [{ name:"Uniswap",     url:ca=>`https://app.uniswap.org/swap?outputCurrency=${ca}&chain=mainnet` }, { name:"1inch ETH",    url:ca=>`https://app.1inch.io/#/1/simple/swap/ETH/${ca}` },   { name:"Paraswap",  url:ca=>`https://app.paraswap.io/#/${ca}-ETH/1/SELL/?network=ethereum` }],
-  bsc:      [{ name:"PancakeSwap", url:ca=>`https://pancakeswap.finance/swap?outputCurrency=${ca}` },           { name:"1inch BSC",    url:ca=>`https://app.1inch.io/#/56/simple/swap/BNB/${ca}` }],
-  base:     [{ name:"Aerodrome",   url:ca=>`https://aerodrome.finance/swap?to=${ca}` },                         { name:"1inch Base",   url:ca=>`https://app.1inch.io/#/8453/simple/swap/ETH/${ca}` }],
-  arbitrum: [{ name:"Camelot",     url:ca=>`https://app.camelot.exchange/?outputCurrency=${ca}` },              { name:"1inch Arb",    url:ca=>`https://app.1inch.io/#/42161/simple/swap/ETH/${ca}` }],
-  polygon:  [{ name:"QuickSwap",   url:ca=>`https://quickswap.exchange/#/swap?outputCurrency=${ca}` },          { name:"1inch Poly",   url:ca=>`https://app.1inch.io/#/137/simple/swap/MATIC/${ca}` }],
+  ethereum: [{ name:"Uniswap",     url:ca=>`https://app.uniswap.org/swap?outputCurrency=${ca}&chain=mainnet` }, { name:"1inch",    url:ca=>`https://app.1inch.io/#/1/simple/swap/ETH/${ca}` }, { name:"Paraswap", url:ca=>`https://app.paraswap.io/#/${ca}-ETH/1/SELL/?network=ethereum` }],
+  bsc:      [{ name:"PancakeSwap", url:ca=>`https://pancakeswap.finance/swap?outputCurrency=${ca}` },           { name:"1inch",    url:ca=>`https://app.1inch.io/#/56/simple/swap/BNB/${ca}` }],
+  base:     [{ name:"Aerodrome",   url:ca=>`https://aerodrome.finance/swap?to=${ca}` },                         { name:"1inch",    url:ca=>`https://app.1inch.io/#/8453/simple/swap/ETH/${ca}` }],
+  arbitrum: [{ name:"Camelot",     url:ca=>`https://app.camelot.exchange/?outputCurrency=${ca}` },              { name:"1inch",    url:ca=>`https://app.1inch.io/#/42161/simple/swap/ETH/${ca}` }],
+  polygon:  [{ name:"QuickSwap",   url:ca=>`https://quickswap.exchange/#/swap?outputCurrency=${ca}` },          { name:"1inch",    url:ca=>`https://app.1inch.io/#/137/simple/swap/MATIC/${ca}` }],
   avalanche:[{ name:"TraderJoe",   url:ca=>`https://traderjoexyz.com/avalanche/swap?outputCurrency=${ca}` }],
   hyperevm: [{ name:"HyperSwap",   url:ca=>`https://app.hyperliquid.xyz/trade/${ca}` }],
   nesa:     [{ name:"Nesa DEX",    url:ca=>`https://dex.nesa.ai/swap?token=${ca}` }],
-  solana:   [{ name:"Jupiter",     url:ca=>`https://jup.ag/swap/SOL-${ca}` },                                   { name:"Orca",         url:ca=>`https://www.orca.so/?outputMint=${ca}` }],
+  solana:   [{ name:"Jupiter",     url:ca=>`https://jup.ag/swap/SOL-${ca}` }, { name:"Orca", url:ca=>`https://www.orca.so/?outputMint=${ca}` }],
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// DESIGN
+// DESIGN - BLUE BLACK PIXEL THEME
 // ═══════════════════════════════════════════════════════════════════════════════
-const C = { bg:"#06060F", surface:"#0B0B18", card:"#0E0E1C", card2:"#121224", border:"#191930", border2:"#21213D", text:"#DDE3F0", muted:"#434360", dim:"#161628", green:"#00D9B0", blue:"#4F8EF7", yellow:"#F5A623", red:"#F05252", purple:"#9B6DFF", teal:"#00C9C9", orange:"#FF6B35" };
+const C = {
+  bg:      "#00030F",
+  surface: "#000820",
+  card:    "#000D2E",
+  card2:   "#001040",
+  border:  "#0A1A4A",
+  border2: "#0F2060",
+  text:    "#C8D8FF",
+  muted:   "#2A4080",
+  blue:    "#4F8EF7",
+  blueL:   "#7AB3FF",
+  blueD:   "#1A3A8A",
+  cyan:    "#00D4FF",
+  white:   "#FFFFFF",
+  red:     "#FF4455",
+  yellow:  "#FFD700",
+  green:   "#00FF88",
+};
+
+const FONT = "'Press Start 2P', monospace";
 
 const g = {
-  root:    { background:C.bg, minHeight:"100vh", color:C.text, fontFamily:"'SF Mono','Fira Code','Consolas',monospace", fontSize:"12px", display:"flex", flexDirection:"column" },
-  topbar:  { background:C.surface, borderBottom:`1px solid ${C.border}`, padding:"0 16px", display:"flex", alignItems:"center", height:"48px", flexShrink:0, position:"sticky", top:0, zIndex:200 },
-  brand:   { fontWeight:"800", fontSize:"14px", color:"#fff", display:"flex", alignItems:"center", gap:"7px", marginRight:"20px", letterSpacing:"0.06em" },
-  layout:  { display:"flex", flex:1, minHeight:0 },
-  sidebar: { width:"178px", flexShrink:0, background:C.surface, borderRight:`1px solid ${C.border}`, padding:"12px 0", display:"flex", flexDirection:"column", gap:"2px", overflowY:"auto" },
-  navItem: (a) => ({ display:"flex", alignItems:"center", gap:"9px", padding:"9px 16px", fontSize:"11px", fontWeight:"700", letterSpacing:"0.06em", color:a?C.green:C.muted, background:a?`${C.green}10`:"transparent", borderLeft:a?`2px solid ${C.green}`:"2px solid transparent", cursor:"pointer", border:"none", width:"100%", textAlign:"left" }),
-  main:    { flex:1, overflowY:"auto", padding:"18px 20px" },
-  card:    { background:C.card, border:`1px solid ${C.border}`, borderRadius:"10px", padding:"18px" },
-  card2:   { background:C.card2, border:`1px solid ${C.border}`, borderRadius:"8px", padding:"14px" },
-  label:   { fontSize:"10px", color:C.muted, fontWeight:"700", letterSpacing:"0.1em", marginBottom:"6px", display:"block" },
-  input:   { width:"100%", background:C.surface, border:`1px solid ${C.border2}`, color:C.text, borderRadius:"6px", padding:"9px 12px", fontSize:"12px", outline:"none", boxSizing:"border-box", fontFamily:"inherit" },
-  select:  { width:"100%", background:C.surface, border:`1px solid ${C.border2}`, color:C.text, borderRadius:"6px", padding:"9px 12px", fontSize:"12px", outline:"none", boxSizing:"border-box", fontFamily:"inherit", cursor:"pointer" },
-  btn:     (v="primary",dis=false) => ({ padding:"9px 18px", borderRadius:"7px", fontSize:"11px", fontWeight:"700", letterSpacing:"0.06em", cursor:dis?"not-allowed":"pointer", border:"none", opacity:dis?0.4:1, flexShrink:0,
-    background: v==="primary"?`linear-gradient(135deg,${C.green},${C.teal})`:v==="purple"?`linear-gradient(135deg,${C.purple},${C.blue})`:v==="ghost"?C.card2:v==="danger"?`${C.red}18`:"transparent",
-    color: v==="primary"?C.bg:v==="purple"?C.bg:v==="danger"?C.red:C.text,
-    border: v==="ghost"?`1px solid ${C.border2}`:v==="danger"?`1px solid ${C.red}35`:"none" }),
-  row:     { display:"flex", alignItems:"center", gap:"8px" },
-  between: { display:"flex", alignItems:"center", justifyContent:"space-between" },
-  grid2:   { display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px" },
-  tag:     (c) => ({ fontSize:"10px", padding:"2px 7px", borderRadius:"3px", background:`${c}18`, color:c, fontWeight:"700", border:`1px solid ${c}28`, whiteSpace:"nowrap" }),
-  chip:    (c) => ({ display:"inline-flex", alignItems:"center", gap:"4px", padding:"3px 8px", borderRadius:"20px", background:`${c}15`, border:`1px solid ${c}30`, fontSize:"10px", color:c, fontWeight:"700" }),
-  divider: { height:"1px", background:C.border, margin:"14px 0" },
-  dot:     (c) => ({ width:"7px", height:"7px", borderRadius:"50%", background:c, boxShadow:`0 0 5px ${c}`, flexShrink:0 }),
-  sectionTitle: { fontSize:"14px", fontWeight:"800", color:"#fff", marginBottom:"4px" },
-  sectionSub:   { fontSize:"10px", color:C.muted, marginBottom:"16px" },
-  quoteBox: { background:C.surface, border:`1px solid ${C.border2}`, borderRadius:"8px", padding:"14px", marginTop:"14px" },
-  successBox: { background:`${C.green}08`, border:`1px solid ${C.green}28`, borderRadius:"8px", padding:"14px", marginTop:"14px" },
+  root: {
+    background: C.bg,
+    minHeight: "100vh",
+    color: C.text,
+    fontFamily: FONT,
+    fontSize: "10px",
+    display: "flex",
+    flexDirection: "column",
+    imageRendering: "pixelated",
+  },
+  topbar: {
+    background: C.surface,
+    borderBottom: `2px solid ${C.border2}`,
+    padding: "0 16px",
+    display: "flex",
+    alignItems: "center",
+    height: "52px",
+    flexShrink: 0,
+    position: "sticky",
+    top: 0,
+    zIndex: 200,
+    boxShadow: `0 2px 0 ${C.blueD}`,
+  },
+  brand: {
+    fontFamily: FONT,
+    fontWeight: "400",
+    fontSize: "16px",
+    color: C.white,
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    marginRight: "20px",
+    letterSpacing: "0.1em",
+    textShadow: `2px 2px 0 ${C.blueD}, 0 0 20px ${C.blue}`,
+  },
+  layout: { display: "flex", flex: 1, minHeight: 0 },
+  sidebar: {
+    width: "160px",
+    flexShrink: 0,
+    background: C.surface,
+    borderRight: `2px solid ${C.border2}`,
+    padding: "12px 0",
+    display: "flex",
+    flexDirection: "column",
+    gap: "2px",
+    overflowY: "auto",
+  },
+  navItem: (a) => ({
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "10px 12px",
+    fontSize: "8px",
+    fontFamily: FONT,
+    color: a ? C.cyan : C.muted,
+    background: a ? `${C.cyan}15` : "transparent",
+    borderLeft: a ? `3px solid ${C.cyan}` : "3px solid transparent",
+    cursor: "pointer",
+    border: "none",
+    borderLeft: a ? `3px solid ${C.cyan}` : "3px solid transparent",
+    width: "100%",
+    textAlign: "left",
+    lineHeight: "1.6",
+    textShadow: a ? `0 0 10px ${C.cyan}` : "none",
+  }),
+  main: { flex: 1, overflowY: "auto", padding: "18px 20px" },
+  card: {
+    background: C.card,
+    border: `2px solid ${C.border2}`,
+    borderRadius: "0px",
+    padding: "16px",
+    boxShadow: `inset 0 0 30px ${C.blueD}20`,
+  },
+  card2: {
+    background: C.card2,
+    border: `2px solid ${C.border}`,
+    borderRadius: "0px",
+    padding: "12px",
+  },
+  label: {
+    fontSize: "8px",
+    fontFamily: FONT,
+    color: C.muted,
+    letterSpacing: "0.12em",
+    marginBottom: "8px",
+    display: "block",
+  },
+  input: {
+    width: "100%",
+    background: C.surface,
+    border: `2px solid ${C.border2}`,
+    color: C.text,
+    borderRadius: "0px",
+    padding: "10px 12px",
+    fontSize: "9px",
+    fontFamily: FONT,
+    outline: "none",
+    boxSizing: "border-box",
+  },
+  select: {
+    width: "100%",
+    background: C.surface,
+    border: `2px solid ${C.border2}`,
+    color: C.text,
+    borderRadius: "0px",
+    padding: "10px 12px",
+    fontSize: "9px",
+    fontFamily: FONT,
+    outline: "none",
+    boxSizing: "border-box",
+    cursor: "pointer",
+  },
+  btn: (v = "primary", dis = false) => ({
+    padding: "10px 16px",
+    borderRadius: "0px",
+    fontSize: "8px",
+    fontFamily: FONT,
+    cursor: dis ? "not-allowed" : "pointer",
+    border: "none",
+    opacity: dis ? 0.4 : 1,
+    flexShrink: 0,
+    letterSpacing: "0.08em",
+    position: "relative",
+    background:
+      v === "primary" ? C.blue :
+      v === "cyan" ? C.cyan :
+      v === "ghost" ? C.card2 :
+      v === "danger" ? `${C.red}22` : C.card,
+    color:
+      v === "primary" ? C.white :
+      v === "cyan" ? C.bg :
+      v === "danger" ? C.red : C.text,
+    border:
+      v === "ghost" ? `2px solid ${C.border2}` :
+      v === "danger" ? `2px solid ${C.red}` :
+      v === "primary" ? `2px solid ${C.blueL}` :
+      v === "cyan" ? `2px solid ${C.cyan}` : `2px solid ${C.border2}`,
+    boxShadow:
+      v === "primary" ? `0 3px 0 ${C.blueD}, 0 0 15px ${C.blue}40` :
+      v === "cyan" ? `0 3px 0 #008899, 0 0 15px ${C.cyan}40` : "none",
+    textShadow: v === "primary" || v === "cyan" ? "none" : "none",
+  }),
+  row: { display: "flex", alignItems: "center", gap: "8px" },
+  between: { display: "flex", alignItems: "center", justifyContent: "space-between" },
+  grid2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" },
+  tag: (c) => ({
+    fontSize: "7px",
+    fontFamily: FONT,
+    padding: "3px 6px",
+    background: `${c}20`,
+    color: c,
+    border: `1px solid ${c}`,
+    whiteSpace: "nowrap",
+    letterSpacing: "0.08em",
+  }),
+  chip: (c) => ({
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    padding: "4px 8px",
+    background: `${c}18`,
+    border: `1px solid ${c}`,
+    fontSize: "7px",
+    fontFamily: FONT,
+    color: c,
+    letterSpacing: "0.06em",
+  }),
+  dot: (c) => ({
+    width: "8px",
+    height: "8px",
+    background: c,
+    flexShrink: 0,
+    boxShadow: `0 0 6px ${c}`,
+  }),
+  divider: { height: "2px", background: C.border2, margin: "14px 0" },
+  sectionTitle: { fontSize: "12px", fontFamily: FONT, color: C.white, marginBottom: "6px", textShadow: `0 0 20px ${C.blue}` },
+  sectionSub: { fontSize: "8px", fontFamily: FONT, color: C.muted, marginBottom: "16px", lineHeight: "1.8" },
+  successBox: { background: `${C.green}08`, border: `2px solid ${C.green}`, padding: "14px", marginTop: "14px" },
+  warnBox: { background: `${C.yellow}08`, border: `2px solid ${C.yellow}`, padding: "12px", marginTop: "12px" },
 };
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PIXEL ART SVG ICONS (8-bit style)
+// ═══════════════════════════════════════════════════════════════════════════════
+const PX = ({ d, size = 16, color = C.cyan }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" style={{ imageRendering: "pixelated", flexShrink: 0 }} fill={color}>
+    <path d={d} />
+  </svg>
+);
+
+// Pixel art icons as SVG paths (8x8 pixel grid scaled to 16x16)
+const ICONS = {
+  scan:     "M2,2h4v2h-2v2h-2v-4zM10,2h4v4h-2v-2h-2v-2zM6,6h4v4h-4v-4zM2,10h2v2h2v2h-4v-4zM12,10h2v4h-4v-2h2v-2z",
+  dex:      "M1,4h3v2h2v2h2v-2h2v-2h3v2h-2v2h-2v2h-2v-2h-2v-2h-2v-2zM5,10h2v2h-2v-2zM9,10h2v2h-2v-2z",
+  bridge:   "M0,8h2v4h2v-6h2v-2h4v2h2v6h2v-4h2v6h-16v-6z",
+  swap:     "M2,2h10v2h-2v2h-2v-2h-4v-2zM4,10h2v2h-2v2h-2v-2h-2v-2h4zM10,8h4v2h2v2h-2v2h-4v-2h2v-2h-2v-2z",
+  transfer: "M4,2h8v2h2v8h-2v2h-8v-2h-2v-8h2v-2zM6,6h4v4h-4v-4z",
+  history:  "M7,1h2v6h4v2h-6v-8zM1,7h4v2h-4v-2zM1,11h4v2h-4v-2zM1,3h2v2h-2v-2z",
+  guide:    "M4,0h8v2h2v2h-2v2h-4v2h-2v-6zM6,8h4v2h-4v-2zM6,12h4v2h-4v-2z",
+  wallet:   "M0,4h14v2h2v6h-2v2h-14v-10zM10,8h4v2h-4v-2z",
+  connect:  "M2,6h2v-4h2v-2h4v2h2v4h2v4h-2v2h-2v2h-4v-2h-2v-2h-2v-4z",
+  token:    "M4,0h8v2h2v2h2v8h-2v2h-2v2h-8v-2h-2v-2h-2v-8h2v-2h2v-2z",
+  chain:    "M6,0h4v2h2v2h2v4h-2v2h-2v2h-4v-2h-2v-2h-2v-4h2v-2h2v-2z",
+  arb:      "M7,0h2v4h4v2h-4v4h-2v-4h-4v-2h4v-4zM0,12h16v4h-16v-4z",
+  warning:  "M7,0h2v2h-2zM6,2h4v2h-4zM5,4h6v2h-6zM4,6h8v2h-8zM3,8h10v2h-10zM2,10h12v2h-12zM6,12h4v2h-4z",
+  check:    "M0,8h2v2h2v2h2v2h2v-2h2v-2h2v-2h2v-2h-2v2h-2v2h-2v-2h-2v-2h-2v2h-2z",
+  cross:    "M0,0h2v2h2v2h2v2h2v-2h2v-2h2v-2h2v2h-2v2h-2v2h2v2h2v2h-2v-2h-2v-2h-2v2h-2v2h-2v-2h2v-2h-2v-2h-2v-2h2v-2h-2v-2z",
+  copy:     "M4,0h10v2h2v10h-2v2h-10v-2h-2v-10h2v-2zM0,4h2v10h10v2h-12v-12z",
+  extern:   "M8,0h8v8h-2v-4h-2v2h-2v2h-2v2h-2v-2h2v-2h2v-2h-2v-4zM0,4h6v2h-4v8h8v-4h2v6h-12v-12z",
+};
+
+const Icon = ({ name, size = 14, color }) => (
+  <PX d={ICONS[name] || ICONS.token} size={size} color={color || C.cyan} />
+);
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // UTILS
 // ═══════════════════════════════════════════════════════════════════════════════
-const sh = a => a ? `${a.slice(0,6)}…${a.slice(-4)}` : "";
-const fmt = (n,d=4) => n==null?"—":Number(n).toLocaleString("en-US",{minimumFractionDigits:0,maximumFractionDigits:d});
-const toWei = (amt,dec=18) => BigInt(Math.round(parseFloat(amt||0)*10**dec)).toString();
-const fromWei = (wei,dec=18) => Number(BigInt(wei||0))/10**dec;
+const sh = a => a ? `${a.slice(0,6)}...${a.slice(-4)}` : "";
+const fmt = (n, d = 4) => n == null ? "---" : Number(n).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: d });
+const toWei = (amt, dec = 18) => BigInt(Math.round(parseFloat(amt || 0) * 10 ** dec)).toString();
+const fromWei = (wei, dec = 18) => Number(BigInt(wei || 0)) / 10 ** dec;
 const chainName = id => CHAINS[id]?.name || id;
 
 async function fetchDexPrice(chainKey, ca) {
@@ -94,12 +300,40 @@ async function fetchDexPrice(chainKey, ca) {
   try {
     const chain = typeof chainKey === "string" ? CHAINS_BY_KEY[chainKey] || CHAINS[chainKey] : CHAINS[chainKey];
     const dexKey = chain?.dexscreener || chain?.dex || chainKey;
-    const res  = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${ca}`);
+    const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${ca}`);
     const data = await res.json();
     if (!data.pairs?.length) return null;
     const filtered = data.pairs.filter(p => p.chainId === dexKey || p.chainId === String(dexKey));
-    const best = (filtered.length ? filtered : data.pairs).sort((a,b)=>(b.liquidity?.usd||0)-(a.liquidity?.usd||0))[0];
-    return { price:parseFloat(best.priceUsd), liquidity:best.liquidity?.usd, volume24h:best.volume?.h24, dex:best.dexId, priceChange24h:best.priceChange?.h24, pair:best.pairAddress };
+    const best = (filtered.length ? filtered : data.pairs).sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0))[0];
+    return {
+      price: parseFloat(best.priceUsd),
+      liquidity: best.liquidity?.usd,
+      volume24h: best.volume?.h24,
+      dex: best.dexId,
+      priceChange24h: best.priceChange?.h24,
+      pair: best.pairAddress,
+      name: best.baseToken?.name || "",
+      symbol: best.baseToken?.symbol || "",
+    };
+  } catch { return null; }
+}
+
+async function fetchTokenInfo(ca, chainId) {
+  if (!ca || ca.length < 6) return null;
+  try {
+    const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${ca}`);
+    const data = await res.json();
+    if (!data.pairs?.length) return null;
+    const chain = CHAINS[chainId];
+    const dexKey = chain?.dexscreener || String(chainId);
+    const filtered = data.pairs.filter(p => p.chainId === dexKey);
+    const best = (filtered.length ? filtered : data.pairs).sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0))[0];
+    return {
+      name: best.baseToken?.name || "Unknown",
+      symbol: best.baseToken?.symbol || "???",
+      decimals: 18,
+      address: ca,
+    };
   } catch { return null; }
 }
 
@@ -108,9 +342,19 @@ async function fetchDexPrice(chainKey, ca) {
 // ═══════════════════════════════════════════════════════════════════════════════
 function Toast({ items }) {
   return (
-    <div style={{ position:"fixed", bottom:"16px", right:"16px", zIndex:9999, display:"flex", flexDirection:"column", gap:"7px" }}>
+    <div style={{ position: "fixed", bottom: "16px", right: "16px", zIndex: 9999, display: "flex", flexDirection: "column", gap: "6px" }}>
       {items.map(t => (
-        <div key={t.id} style={{ background:C.card2, border:`1px solid ${t.type==="success"?C.green:t.type==="error"?C.red:t.type==="warn"?C.yellow:C.border}`, borderRadius:"8px", padding:"10px 14px", fontSize:"11px", color:t.type==="success"?C.green:t.type==="error"?C.red:t.type==="warn"?C.yellow:C.text, maxWidth:"320px", boxShadow:"0 8px 32px #00000099" }}>
+        <div key={t.id} style={{
+          background: C.card2,
+          border: `2px solid ${t.type === "success" ? C.green : t.type === "error" ? C.red : t.type === "warn" ? C.yellow : C.border2}`,
+          padding: "10px 14px",
+          fontSize: "8px",
+          fontFamily: FONT,
+          color: t.type === "success" ? C.green : t.type === "error" ? C.red : t.type === "warn" ? C.yellow : C.text,
+          maxWidth: "280px",
+          lineHeight: "1.8",
+          boxShadow: "4px 4px 0 #00000088",
+        }}>
           {t.msg}
         </div>
       ))}
@@ -120,27 +364,35 @@ function Toast({ items }) {
 
 function Steps({ step, labels }) {
   return (
-    <div style={{ display:"flex", alignItems:"center", marginBottom:"18px" }}>
-      {labels.map((l,i) => (
-        <div key={i} style={{ display:"flex", alignItems:"center", flex: i<labels.length-1?1:0 }}>
-          <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"4px" }}>
-            <div style={{ width:"26px", height:"26px", borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"10px", fontWeight:"800", background:step>i?C.green:step===i?`${C.green}20`:`${C.border}`, border:`2px solid ${step>=i?C.green:C.border}`, color:step>i?C.bg:step===i?C.green:C.muted }}>
-              {step>i?"✓":i+1}
+    <div style={{ display: "flex", alignItems: "center", marginBottom: "18px" }}>
+      {labels.map((l, i) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", flex: i < labels.length - 1 ? 1 : 0 }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
+            <div style={{
+              width: "24px", height: "24px",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: "8px", fontFamily: FONT,
+              background: step > i ? C.blue : step === i ? `${C.blue}30` : C.surface,
+              border: `2px solid ${step >= i ? C.blue : C.border2}`,
+              color: step > i ? C.white : step === i ? C.blue : C.muted,
+              boxShadow: step >= i ? `0 0 10px ${C.blue}60` : "none",
+            }}>
+              {step > i ? "OK" : i + 1}
             </div>
-            <span style={{ fontSize:"9px", color:step>=i?C.green:C.muted, fontWeight:"700", whiteSpace:"nowrap", letterSpacing:"0.07em" }}>{l}</span>
+            <span style={{ fontSize: "7px", fontFamily: FONT, color: step >= i ? C.blue : C.muted, whiteSpace: "nowrap" }}>{l}</span>
           </div>
-          {i<labels.length-1 && <div style={{ flex:1, height:"2px", background:step>i?C.green:C.border, margin:"0 6px", marginBottom:"14px" }} />}
+          {i < labels.length - 1 && <div style={{ flex: 1, height: "2px", background: step > i ? C.blue : C.border2, margin: "0 6px", marginBottom: "14px" }} />}
         </div>
       ))}
     </div>
   );
 }
 
-function SectionHeader({ icon, title, sub }) {
+function SectionHeader({ iconName, title, sub }) {
   return (
-    <div style={{ marginBottom:"18px" }}>
-      <div style={{ ...g.row, marginBottom:"4px" }}>
-        <span style={{ fontSize:"18px" }}>{icon}</span>
+    <div style={{ marginBottom: "18px" }}>
+      <div style={{ ...g.row, marginBottom: "6px" }}>
+        <Icon name={iconName} size={16} color={C.cyan} />
         <span style={g.sectionTitle}>{title}</span>
       </div>
       {sub && <div style={g.sectionSub}>{sub}</div>}
@@ -148,61 +400,76 @@ function SectionHeader({ icon, title, sub }) {
   );
 }
 
-// Bridge Modal (dari ca-arb-tool, lebih lengkap)
-function BridgeModal({ opp, onClose, tokenName }) {
+function PixelDivider() {
+  return <div style={{ height: "2px", background: `repeating-linear-gradient(90deg, ${C.border2} 0px, ${C.border2} 4px, transparent 4px, transparent 8px)`, margin: "14px 0" }} />;
+}
+
+function BridgeModal({ opp, onClose, scannedTokens }) {
   if (!opp) return null;
   const fromChain = CHAINS_BY_KEY[opp.buyChain] || CHAINS[opp.buyChain];
-  const toChain   = CHAINS_BY_KEY[opp.sellChain] || CHAINS[opp.sellChain];
-  const fromType  = fromChain?.type;
-  const toType    = toChain?.type;
+  const toChain = CHAINS_BY_KEY[opp.sellChain] || CHAINS[opp.sellChain];
+  const fromType = fromChain?.type;
+  const toType = toChain?.type;
   const compatible = BRIDGES.filter(b => b.supports.includes(fromType) && b.supports.includes(toType));
+  const tokenCA = scannedTokens[opp.buyChain]?.ca || "";
+  const tokenSymbol = scannedTokens[opp.buyChain]?.symbol || "TOKEN";
+
   return (
-    <div style={{ position:"fixed", inset:0, background:"#00000090", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={onClose}>
-      <div style={{ background:C.card, border:`1px solid ${C.border2}`, borderRadius:"12px", padding:"24px", maxWidth:"480px", width:"92%", maxHeight:"85vh", overflowY:"auto" }} onClick={e=>e.stopPropagation()}>
-        <div style={{ ...g.between, marginBottom:"16px" }}>
-          <div style={{ fontWeight:"800", fontSize:"15px", color:"#fff" }}>🌉 Pilih Bridge</div>
-          <button style={{ background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:"18px" }} onClick={onClose}>✕</button>
-        </div>
-        <div style={{ background:C.surface, borderRadius:"8px", padding:"12px 14px", marginBottom:"16px" }}>
-          <div style={{ fontSize:"11px", color:C.muted, marginBottom:"8px" }}>RUTE ARBITRASI</div>
-          <div style={{ display:"flex", alignItems:"center", gap:"10px", flexWrap:"wrap" }}>
-            <span style={g.chip(fromChain?.color||C.blue)}>● {fromChain?.name||opp.buyChain}</span>
-            <span style={{ color:C.muted }}>→</span>
-            <span style={g.chip(toChain?.color||C.purple)}>● {toChain?.name||opp.sellChain}</span>
-            <span style={{ marginLeft:"auto", ...g.tag(C.green) }}>+{opp.spread}% spread</span>
+    <div style={{ position: "fixed", inset: 0, background: "#00000099", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={onClose}>
+      <div style={{ background: C.card, border: `2px solid ${C.border2}`, padding: "20px", maxWidth: "460px", width: "92%", maxHeight: "85vh", overflowY: "auto", boxShadow: `0 0 40px ${C.blue}40` }} onClick={e => e.stopPropagation()}>
+        <div style={{ ...g.between, marginBottom: "14px" }}>
+          <div style={{ ...g.row }}>
+            <Icon name="bridge" size={14} color={C.cyan} />
+            <span style={{ fontFamily: FONT, fontSize: "10px", color: C.white }}>BRIDGE TOKEN</span>
           </div>
-          <div style={{ marginTop:"8px", fontSize:"11px", color:C.muted }}>
-            Token: <b style={{color:"#fff"}}>{tokenName}</b> · Beli @ <span style={{color:C.green}}>${fmt(opp.buyPrice)}</span> · Jual @ <span style={{color:C.yellow}}>${fmt(opp.sellPrice)}</span>
+          <button style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontFamily: FONT, fontSize: "12px" }} onClick={onClose}>X</button>
+        </div>
+        <div style={{ background: C.surface, border: `2px solid ${C.border}`, padding: "10px", marginBottom: "14px" }}>
+          <div style={{ fontSize: "7px", fontFamily: FONT, color: C.muted, marginBottom: "8px" }}>RUTE ARBI</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+            <span style={g.chip(fromChain?.color || C.blue)}>{fromChain?.name || opp.buyChain}</span>
+            <span style={{ color: C.muted, fontFamily: FONT, fontSize: "8px" }}>{">>"}</span>
+            <span style={g.chip(toChain?.color || C.blueL)}>{toChain?.name || opp.sellChain}</span>
+            <span style={{ marginLeft: "auto", ...g.tag(C.green) }}>+{opp.spread}%</span>
+          </div>
+          <div style={{ marginTop: "8px", fontSize: "8px", fontFamily: FONT, color: C.muted, lineHeight: "1.8" }}>
+            TOKEN: <b style={{ color: C.white }}>{tokenSymbol}</b><br />
+            BELI: <span style={{ color: C.green }}>${fmt(opp.buyPrice)}</span> | JUAL: <span style={{ color: C.yellow }}>${fmt(opp.sellPrice)}</span>
           </div>
         </div>
-        {compatible.length === 0 && <div style={{ color:C.yellow, fontSize:"12px", padding:"12px", background:`${C.yellow}10`, borderRadius:"6px" }}>⚠️ Belum ada bridge langsung. Coba deBridge atau Wormhole manual.</div>}
-        <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
-          {compatible.map(b => {
-            const fromKey = fromChain?.id || opp.buyChain;
-            const toKey   = toChain?.id   || opp.sellChain;
-            const url = b.url(fromKey, toKey, tokenName, "");
-            return (
-              <div key={b.name} style={{ background:C.surface, border:`1px solid ${C.border2}`, borderRadius:"8px", padding:"12px 14px", cursor:"pointer" }} onClick={() => window.open(url, "_blank")}>
-                <div style={g.between}>
-                  <div style={g.row}>
-                    <span style={{ fontSize:"18px" }}>{b.icon}</span>
-                    <div><div style={{ fontWeight:"700", color:"#fff" }}>{b.name}</div><div style={{ fontSize:"10px", color:C.muted, marginTop:"2px" }}>{b.desc}</div></div>
+        {compatible.length === 0 ? (
+          <div style={g.warnBox}>
+            <div style={{ ...g.row, marginBottom: "6px" }}>
+              <Icon name="warning" size={12} color={C.yellow} />
+              <span style={{ fontFamily: FONT, fontSize: "8px", color: C.yellow }}>TIDAK ADA BRIDGE</span>
+            </div>
+            <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, lineHeight: "1.8" }}>
+              Tidak ada bridge yang tersedia untuk rute ini. Coba lakukan manual via DEX di masing-masing chain.
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {compatible.map(b => {
+              const fromKey = fromChain?.id || opp.buyChain;
+              const toKey = toChain?.id || opp.sellChain;
+              const url = b.url(fromKey, toKey, tokenCA, "");
+              return (
+                <div key={b.name} style={{ background: C.surface, border: `2px solid ${C.border2}`, padding: "10px 12px", cursor: "pointer" }} onClick={() => window.open(url, "_blank")}>
+                  <div style={g.between}>
+                    <div>
+                      <div style={{ fontFamily: FONT, fontSize: "9px", color: C.white, marginBottom: "4px" }}>{b.name}</div>
+                      <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted }}>{b.desc}</div>
+                    </div>
+                    <div style={{ ...g.row }}>
+                      <Icon name="extern" size={10} color={C.blue} />
+                      <span style={{ ...g.tag(C.blue) }}>BUKA</span>
+                    </div>
                   </div>
-                  <span style={g.tag(C.purple)}>BUKA ↗</span>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-        <div style={{ marginTop:"12px", background:`${C.blue}10`, border:`1px solid ${C.blue}25`, borderRadius:"7px", padding:"12px" }}>
-          <div style={{ fontSize:"10px", fontWeight:"700", color:C.blue, marginBottom:"6px" }}>CARA DAPAT API KEY</div>
-          <div style={{ fontSize:"10px", color:C.muted, lineHeight:"1.7" }}>
-            • <b style={{color:"#fff"}}>1inch</b>: portal.1inch.dev → gratis 100k req/mo<br/>
-            • <b style={{color:"#fff"}}>Across</b>: across.to/developers → free tier<br/>
-            • <b style={{color:"#fff"}}>deBridge</b>: docs.debridge.finance → tidak perlu key<br/>
-            • <b style={{color:"#fff"}}>Wormhole</b>: docs.wormhole.com → SDK open source
+              );
+            })}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -212,286 +479,250 @@ function BridgeModal({ opp, onClose, tokenName }) {
 // MAIN APP
 // ═══════════════════════════════════════════════════════════════════════════════
 export default function App() {
-  const [page, setPage]       = useState("scanner");
-  const [wallet, setWallet]   = useState(null);
+  const [page, setPage] = useState("scanner");
+  const [wallet, setWallet] = useState(null);
   const [chainId, setChainId] = useState(null);
-  const [toasts, setToasts]   = useState([]);
+  const [toasts, setToasts] = useState([]);
   const [history, setHistory] = useState([]);
   const [bridgeModal, setBridgeModal] = useState(null);
 
-  // ── CA Scanner (dari ca-arb-tool — lebih lengkap, support semua chain) ──
-  const [tokenName, setTokenName] = useState("NESA");
+  // ── Scanner state ──
+  const [tokenName, setTokenName] = useState("");
   const [caInputs, setCaInputs] = useState({
-    nesa:     "",
-    bsc:      "0x3131f6B80C26936aB03F7d9D29Eb4Ddf36AC3FB5",
-    ethereum: "0x230f1E241C621d5af670Dad83ebCdd18971E2995",
-    solana:   "DcozfBUx4qxNwfq3PU622qHvVtnMRtJEUjhmyiFRaG43",
-    hyperevm: "0xD1B6443d49156B66E7bd8a37673511BE68BFa459",
-    base:     "0x87ea09Fe8d9dC6115086F5E0A30CA6750a997f1C",
-    arbitrum: "0xEf9295afCff293956E8B149b33449f246f6F107D",
-    polygon:  "",
-    avalanche:"",
+    ethereum: "", bsc: "", base: "", arbitrum: "",
+    polygon: "", avalanche: "", hyperevm: "", nesa: "", solana: "",
   });
   const [scanResults, setScanResults] = useState({});
   const [scanLoading, setScanLoading] = useState({});
-  const [opportunities, setOpps]      = useState([]);
-  const [scanning, setScanning]       = useState(false);
-  const [lastScan, setLastScan]       = useState(null);
+  const [opportunities, setOpps] = useState([]);
+  const [scanning, setScanning] = useState(false);
+  const [lastScan, setLastScan] = useState(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const autoRef = useRef(null);
 
-  // ── Bridge state (dari arbx) ──
-  const [bFrom, setBFrom]   = useState("1");
-  const [bTo, setBTo]       = useState("8453");
-  const [bToken, setBToken] = useState("USDC");
-  const [bAmt, setBAmt]     = useState("");
-  const [bRecip, setBRecip] = useState("");
-  const [bQuote, setBQuote] = useState(null);
-  const [bStep, setBStep]   = useState(0);
-  const [bLoading, setBLoading] = useState(false);
-  const [bHash, setBHash]   = useState(null);
+  // Scanned tokens: { chainKey: { ca, symbol, name, price, ... } }
+  const [scannedTokens, setScannedTokens] = useState({});
 
-  // ── Swap state (dari arbx) ──
-  const [sFrom, setSFrom]   = useState("1");
-  const [sTo, setSTo]       = useState("56");
-  const [sFTok, setSFTok]   = useState("USDC");
-  const [sTTok, setSTTok]   = useState("USDT");
-  const [sAmt, setSAmt]     = useState("");
-  const [sQuote, setSQuote] = useState(null);
-  const [sStep, setSStep]   = useState(0);
+  // ── Bridge state ──
+  const [bFrom, setBFrom] = useState("");
+  const [bTo, setBTo] = useState("");
+  const [bStep, setBStep] = useState(0);
+
+  // ── Swap state ──
+  const [sFrom, setSFrom] = useState("");
+  const [sTo, setSTo] = useState("");
+  const [sAmt, setSAmt] = useState("");
+  const [sStep, setSStep] = useState(0);
   const [sLoading, setSLoading] = useState(false);
-  const [sHash, setSHash]   = useState(null);
+  const [sQuote, setSQuote] = useState(null);
+  const [sHash, setSHash] = useState(null);
 
-  // ── Transfer state (dari arbx) ──
-  const [tChain, setTChain] = useState("1");
-  const [tTo, setTTo]       = useState("");
-  const [tAmt, setTAmt]     = useState("");
-  const [tTok, setTTok]     = useState("ETH");
-  const [tStep, setTStep]   = useState(0);
-  const [tHash, setTHash]   = useState(null);
+  // ── Transfer state ──
+  const [tChain, setTChain] = useState("");
+  const [tTo, setTTo] = useState("");
+  const [tAmt, setTAmt] = useState("");
+  const [tCA, setTCA] = useState("");
+  const [tTokenInfo, setTTokenInfo] = useState(null);
+  const [tFetchingToken, setTFetchingToken] = useState(false);
+  const [tStep, setTStep] = useState(0);
+  const [tHash, setTHash] = useState(null);
   const [tLoading, setTLoading] = useState(false);
 
   // ── Toast ──
-  const toast = useCallback((msg, type="info") => {
-    const id = Date.now()+Math.random();
-    setToasts(p=>[...p,{id,msg,type}]);
-    setTimeout(()=>setToasts(p=>p.filter(t=>t.id!==id)),4500);
-  },[]);
+  const toast = useCallback((msg, type = "info") => {
+    const id = Date.now() + Math.random();
+    setToasts(p => [...p, { id, msg, type }]);
+    setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 4500);
+  }, []);
 
-  const addHistory = (entry) => setHistory(p=>[{...entry,ts:new Date().toLocaleTimeString("id-ID",{hour12:false})},...p.slice(0,49)]);
+  const addHistory = (entry) => setHistory(p => [{ ...entry, ts: new Date().toLocaleTimeString("id-ID", { hour12: false }) }, ...p.slice(0, 49)]);
 
   // ── MetaMask ──
   const connect = async () => {
-    if (!window.ethereum) { toast("Install MetaMask dulu","error"); return; }
+    if (!window.ethereum) { toast("INSTALL METAMASK DULU", "error"); return; }
     try {
-      const [acct] = await window.ethereum.request({method:"eth_requestAccounts"});
-      const cid    = await window.ethereum.request({method:"eth_chainId"});
-      setWallet(acct); setChainId(parseInt(cid,16));
-      setBRecip(acct);
-      toast(`✅ ${sh(acct)} terhubung`,"success");
-    } catch { toast("Koneksi ditolak","error"); }
+      const [acct] = await window.ethereum.request({ method: "eth_requestAccounts" });
+      const cid = await window.ethereum.request({ method: "eth_chainId" });
+      setWallet(acct); setChainId(parseInt(cid, 16));
+      toast(`CONNECTED: ${sh(acct)}`, "success");
+    } catch { toast("KONEKSI DITOLAK", "error"); }
   };
 
-  useEffect(()=>{
+  useEffect(() => {
     if (!window.ethereum) return;
-    const onA = a => { if(a[0]) setWallet(a[0]); else setWallet(null); };
-    const onC = c => setChainId(parseInt(c,16));
-    window.ethereum.on("accountsChanged",onA);
-    window.ethereum.on("chainChanged",onC);
-    return ()=>{ window.ethereum.removeListener("accountsChanged",onA); window.ethereum.removeListener("chainChanged",onC); };
-  },[]);
+    const onA = a => { if (a[0]) setWallet(a[0]); else setWallet(null); };
+    const onC = c => setChainId(parseInt(c, 16));
+    window.ethereum.on("accountsChanged", onA);
+    window.ethereum.on("chainChanged", onC);
+    return () => { window.ethereum.removeListener("accountsChanged", onA); window.ethereum.removeListener("chainChanged", onC); };
+  }, []);
 
   const switchChain = async (targetId) => {
-    const t = CHAINS[targetId] || Object.values(CHAINS_BY_KEY).find(c=>c.id===Number(targetId));
-    if (!t || t.type!=="evm") { toast(`Switch manual untuk ${t?.name||targetId}`,"warn"); return; }
+    const t = CHAINS[targetId] || Object.values(CHAINS_BY_KEY).find(c => c.id === Number(targetId));
+    if (!t || t.type !== "evm") { toast(`SWITCH MANUAL UNTUK ${t?.name || targetId}`, "warn"); return; }
     try {
-      await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:`0x${Number(targetId).toString(16)}`}]});
+      await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: `0x${Number(targetId).toString(16)}` }] });
       setChainId(Number(targetId));
-      toast(`✅ ${t.name}`,"success");
-    } catch(e) { toast(`Gagal switch: ${e.message}`,"error"); }
+      toast(`PINDAH KE ${t.name}`, "success");
+    } catch (e) { toast(`GAGAL SWITCH: ${e.message}`, "error"); }
   };
 
-  // ── CA Scanner (support semua chain dari ca-arb-tool) ──
+  // ── Scanner ──
   const runScan = useCallback(async () => {
-    const active = Object.entries(caInputs).filter(([,v])=>v&&v.trim());
-    if (!active.length) { toast("Isi minimal 1 CA dulu","warn"); return; }
-    setScanning(true); setScanResults({}); setOpps([]);
-    const loading = {}; active.forEach(([k])=>loading[k]=true); setScanLoading(loading);
+    const active = Object.entries(caInputs).filter(([, v]) => v && v.trim());
+    if (!active.length) { toast("ISI MINIMAL 1 CA DULU", "warn"); return; }
+    setScanning(true); setScanResults({}); setOpps([]); setScannedTokens({});
+    const loading = {}; active.forEach(([k]) => loading[k] = true); setScanLoading(loading);
     const fetched = {};
-    await Promise.all(active.map(async([chain,ca])=>{
+    await Promise.all(active.map(async ([chain, ca]) => {
       const d = await fetchDexPrice(chain, ca.trim());
-      fetched[chain] = d ? {...d,ca:ca.trim()} : {error:true,ca:ca.trim()};
-      setScanLoading(p=>({...p,[chain]:false}));
-      setScanResults(p=>({...p,[chain]:fetched[chain]}));
+      fetched[chain] = d ? { ...d, ca: ca.trim() } : { error: true, ca: ca.trim() };
+      setScanLoading(p => ({ ...p, [chain]: false }));
+      setScanResults(p => ({ ...p, [chain]: fetched[chain] }));
     }));
-    const prices = Object.entries(fetched).filter(([,v])=>v?.price);
+
+    // Build scannedTokens map
+    const tokMap = {};
+    Object.entries(fetched).forEach(([chain, d]) => {
+      if (d?.price) tokMap[chain] = { ca: d.ca, symbol: d.symbol || tokenName || "TOKEN", name: d.name || tokenName || "Token", price: d.price };
+    });
+    setScannedTokens(tokMap);
+
+    // Set default bridge/swap chains from scanned
+    const scannedChains = Object.keys(tokMap);
+    if (scannedChains.length >= 1) { setBFrom(scannedChains[0]); setSFrom(scannedChains[0]); setTChain(scannedChains[0]); }
+    if (scannedChains.length >= 2) { setBTo(scannedChains[1]); setSTo(scannedChains[1]); }
+
+    const prices = Object.entries(fetched).filter(([, v]) => v?.price);
     const opps = [];
-    for (let i=0;i<prices.length;i++) for (let j=i+1;j<prices.length;j++) {
-      const [cA,dA]=prices[i],[cB,dB]=prices[j];
-      const spread = Math.abs(dA.price-dB.price)/Math.min(dA.price,dB.price)*100;
-      const [buyC,sellC,buyD,sellD] = dA.price<dB.price?[cA,cB,dA,dB]:[cB,cA,dB,dA];
-      opps.push({buyChain:buyC,sellChain:sellC,buyPrice:buyD.price,sellPrice:sellD.price,buyDex:buyD.dex,sellDex:sellD.dex,spread:+spread.toFixed(4),buyLiq:buyD.liquidity,sellLiq:sellD.liquidity,buyCA:caInputs[buyC],sellCA:caInputs[sellC]});
+    for (let i = 0; i < prices.length; i++) for (let j = i + 1; j < prices.length; j++) {
+      const [cA, dA] = prices[i], [cB, dB] = prices[j];
+      const spread = Math.abs(dA.price - dB.price) / Math.min(dA.price, dB.price) * 100;
+      const [buyC, sellC, buyD, sellD] = dA.price < dB.price ? [cA, cB, dA, dB] : [cB, cA, dB, dA];
+      opps.push({ buyChain: buyC, sellChain: sellC, buyPrice: buyD.price, sellPrice: sellD.price, buyDex: buyD.dex, sellDex: sellD.dex, spread: +spread.toFixed(4), buyLiq: buyD.liquidity, sellLiq: sellD.liquidity, buyCA: caInputs[buyC], sellCA: caInputs[sellC] });
     }
-    setOpps(opps.sort((a,b)=>b.spread-a.spread));
+    setOpps(opps.sort((a, b) => b.spread - a.spread));
     setScanning(false);
-    setLastScan(new Date().toLocaleTimeString("id-ID",{hour12:false}));
-    toast(`✅ ${prices.length} chain, ${opps.length} peluang ditemukan`,"success");
-  },[caInputs,toast]);
+    setLastScan(new Date().toLocaleTimeString("id-ID", { hour12: false }));
+    toast(`SCAN SELESAI: ${prices.length} CHAIN, ${opps.length} PELUANG`, "success");
+  }, [caInputs, tokenName, toast]);
 
-  useEffect(()=>{
-    if (autoRefresh) { autoRef.current=setInterval(runScan,30000); toast("Auto-refresh 30s aktif"); }
+  useEffect(() => {
+    if (autoRefresh) { autoRef.current = setInterval(runScan, 30000); toast("AUTO-REFRESH 30S AKTIF"); }
     else clearInterval(autoRef.current);
-    return ()=>clearInterval(autoRef.current);
-  },[autoRefresh,runScan]);
+    return () => clearInterval(autoRef.current);
+  }, [autoRefresh, runScan]);
 
-  // ── Bridge (Across) ──
-  const getAcrossQuote = async () => {
-    if (!bAmt||!bFrom||!bTo) { toast("Isi semua field","warn"); return; }
-    if (!wallet) { toast("Connect wallet dulu","error"); return; }
-    setBLoading(true); setBQuote(null);
-    try {
-      const tokenAddr = TOKEN_ADDRS[bToken]?.[bFrom];
-      if (!tokenAddr) throw new Error(`${bToken} tidak ada di ${CHAINS[bFrom]?.name}`);
-      const dec = bToken.startsWith("USD")?6:18;
-      const inputAmt = toWei(bAmt,dec);
-      const outToken = TOKEN_ADDRS[bToken]?.[bTo]||tokenAddr;
-      const url = `https://app.across.to/api/suggested-fees?inputToken=${tokenAddr}&outputToken=${outToken}&originChainId=${bFrom}&destinationChainId=${bTo}&amount=${inputAmt}&recipient=${bRecip||wallet}`;
-      const res  = await fetch(url);
-      if (!res.ok) throw new Error(`Across: ${res.status}`);
-      const data = await res.json();
-      const fee = fromWei(data.relayFeeTotal||data.totalRelayFee?.total||0,dec);
-      setBQuote({ tokenAddr, outToken, inputAmt, outAmt:(parseFloat(bAmt)-fee).toFixed(4), fee:fee.toFixed(4), relayFeeTotal:data.relayFeeTotal||data.totalRelayFee?.total, spokePool:data.spokePoolAddress, dec, eta:data.estimatedFillTimeSec?`~${Math.ceil(data.estimatedFillTimeSec/60)} mnt`:"~2-5 mnt" });
-      setBStep(1); toast("✅ Quote didapat","success");
-    } catch(e) { toast(`Quote gagal: ${e.message}`,"error"); }
-    setBLoading(false);
-  };
-
-  const execBridge = async () => {
-    if (!bQuote||!wallet) return;
-    setBLoading(true);
-    try {
-      if (chainId!==Number(bFrom)) { await switchChain(bFrom); await new Promise(r=>setTimeout(r,1200)); }
-      const deadline = Math.floor(Date.now()/1000)+3600;
-      const qt = Math.floor(Date.now()/1000);
-      const pad  = v => v.replace("0x","").padStart(64,"0");
-      const padN = n => BigInt(n||0).toString(16).padStart(64,"0");
-      const data = "0x7b939232"+pad(wallet)+pad(bRecip||wallet)+pad(bQuote.tokenAddr)+pad(bQuote.outToken)+padN(bQuote.inputAmt)+padN(BigInt(bQuote.inputAmt)-BigInt(bQuote.relayFeeTotal||0))+padN(bTo)+pad("0x0000000000000000000000000000000000000000")+padN(qt).slice(56)+padN(deadline).slice(56)+padN(0).slice(56)+padN(0)+padN(0);
-      if (bToken!=="ETH"&&bToken!=="BNB") { toast("🔑 Approve token (1/2)…","warn"); await approveERC20(bQuote.tokenAddr,bQuote.spokePool,bAmt,bQuote.dec); await new Promise(r=>setTimeout(r,2000)); }
-      toast("📤 Bridge (2/2)…");
-      const hash = await sendTx({from:wallet,to:bQuote.spokePool,data,gas:"0x3D090"});
-      setBHash(hash); setBStep(2);
-      addHistory({type:"Bridge",detail:`${bAmt} ${bToken}: ${chainName(bFrom)}→${chainName(bTo)}`,hash,chainId:Number(bFrom)});
-      toast(`✅ Bridge dikirim! ${sh(hash)}`,"success");
-    } catch(e) { toast(`Gagal: ${e.message}`,"error"); }
-    setBLoading(false);
-  };
-
-  // ── Swap (deBridge DLN) ──
-  const getDeBridgeQuote = async () => {
-    if (!sAmt||!wallet) { toast(wallet?"Isi jumlah":"Connect wallet dulu","warn"); return; }
+  // ── Swap (deBridge) ──
+  const getSwapQuote = async () => {
+    if (!sAmt || !wallet) { toast(wallet ? "ISI JUMLAH" : "CONNECT WALLET DULU", "warn"); return; }
+    if (!sFrom || !sTo) { toast("PILIH CHAIN DULU", "warn"); return; }
+    const fromToken = scannedTokens[sFrom];
+    const toToken = scannedTokens[sTo];
+    if (!fromToken || !toToken) { toast("TOKEN TIDAK DITEMUKAN DI CHAIN INI", "warn"); return; }
     setSLoading(true); setSQuote(null);
     try {
-      const srcTok = TOKEN_ADDRS[sFTok]?.[sFrom]||"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
-      const dstTok = TOKEN_ADDRS[sTTok]?.[sTo]  ||"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
-      const dec    = sFTok.startsWith("USD")?6:18;
-      const inAmt  = toWei(sAmt,dec);
-      const url = `https://api.dln.trade/v1.0/dln/order/quote?srcChainId=${sFrom}&srcChainTokenIn=${srcTok}&srcChainTokenInAmount=${inAmt}&dstChainId=${sTo}&dstChainTokenOut=${dstTok}&prependOperatingExpenses=true&affiliateFeePercent=0`;
-      const res  = await fetch(url);
-      if (!res.ok) { const e=await res.json(); throw new Error(e.errorMessage||res.status); }
+      const dec = 18;
+      const inAmt = toWei(sAmt, dec);
+      const url = `https://api.dln.trade/v1.0/dln/order/quote?srcChainId=${CHAINS_BY_KEY[sFrom]?.id}&srcChainTokenIn=${fromToken.ca}&srcChainTokenInAmount=${inAmt}&dstChainId=${CHAINS_BY_KEY[sTo]?.id}&dstChainTokenOut=${toToken.ca}&prependOperatingExpenses=true&affiliateFeePercent=0`;
+      const res = await fetch(url);
+      if (!res.ok) { const e = await res.json(); throw new Error(e.errorMessage || res.status); }
       const data = await res.json();
-      setSQuote({ srcTok, dstTok, inAmt, dec, outAmt:fromWei(data.estimation?.dstChainTokenOut?.amount||0,sTTok.startsWith("USD")?6:18).toFixed(4) });
-      setSStep(1); toast("✅ Quote deBridge","success");
-    } catch(e) { toast(`Quote gagal: ${e.message}`,"error"); }
+      setSQuote({ fromToken, toToken, inAmt, dec, outAmt: fromWei(data.estimation?.dstChainTokenOut?.amount || 0, dec).toFixed(6) });
+      setSStep(1); toast("QUOTE DIDAPAT", "success");
+    } catch (e) { toast(`QUOTE GAGAL: ${e.message}`, "error"); }
     setSLoading(false);
   };
 
   const execSwap = async () => {
-    if (!sQuote||!wallet) return;
+    if (!sQuote || !wallet) return;
     setSLoading(true);
     try {
-      if (chainId!==Number(sFrom)) { await switchChain(sFrom); await new Promise(r=>setTimeout(r,1200)); }
-      const url = `https://api.dln.trade/v1.0/dln/order/create-tx?srcChainId=${sFrom}&srcChainTokenIn=${sQuote.srcTok}&srcChainTokenInAmount=${sQuote.inAmt}&dstChainId=${sTo}&dstChainTokenOut=${sQuote.dstTok}&dstChainTokenOutRecipient=${wallet}&senderAddress=${wallet}&srcChainOrderAuthorityAddress=${wallet}&dstChainOrderAuthorityAddress=${wallet}&prependOperatingExpenses=true&affiliateFeePercent=0`;
-      const res  = await fetch(url);
-      if (!res.ok) { const e=await res.json(); throw new Error(e.errorMessage||res.status); }
-      const tx   = await res.json();
+      const fromChainId = CHAINS_BY_KEY[sFrom]?.id;
+      const toChainId = CHAINS_BY_KEY[sTo]?.id;
+      if (chainId !== fromChainId) { await switchChain(fromChainId); await new Promise(r => setTimeout(r, 1200)); }
+      const url = `https://api.dln.trade/v1.0/dln/order/create-tx?srcChainId=${fromChainId}&srcChainTokenIn=${sQuote.fromToken.ca}&srcChainTokenInAmount=${sQuote.inAmt}&dstChainId=${toChainId}&dstChainTokenOut=${sQuote.toToken.ca}&dstChainTokenOutRecipient=${wallet}&senderAddress=${wallet}&srcChainOrderAuthorityAddress=${wallet}&dstChainOrderAuthorityAddress=${wallet}&prependOperatingExpenses=true&affiliateFeePercent=0`;
+      const res = await fetch(url);
+      if (!res.ok) { const e = await res.json(); throw new Error(e.errorMessage || res.status); }
+      const tx = await res.json();
       if (!tx.tx) throw new Error("Tidak ada tx data");
-      if (!["ETH","BNB","MATIC","AVAX"].includes(sFTok)) { toast("🔑 Approve (1/2)…","warn"); await approveERC20(sQuote.srcTok,tx.tx.to,sAmt,sQuote.dec); await new Promise(r=>setTimeout(r,2000)); }
-      toast("📤 Swap (2/2)…");
-      const hash = await sendTx({from:wallet,to:tx.tx.to,data:tx.tx.data,value:tx.tx.value||"0x0",gas:"0x493E0"});
+      toast("MENGIRIM SWAP...", "warn");
+      const hash = await sendTx({ from: wallet, to: tx.tx.to, data: tx.tx.data, value: tx.tx.value || "0x0", gas: "0x493E0" });
       setSHash(hash); setSStep(2);
-      addHistory({type:"Swap",detail:`${sAmt} ${sFTok}→${sTTok}: ${chainName(sFrom)}→${chainName(sTo)}`,hash,chainId:Number(sFrom)});
-      toast(`✅ Swap dikirim! ${sh(hash)}`,"success");
-    } catch(e) { toast(`Gagal: ${e.message}`,"error"); }
+      addHistory({ type: "Swap", detail: `${sAmt} ${sQuote.fromToken.symbol} >> ${sQuote.toToken.symbol}: ${chainName(sFrom)} >> ${chainName(sTo)}`, hash, chainId: fromChainId });
+      toast("SWAP BERHASIL!", "success");
+    } catch (e) { toast(`GAGAL: ${e.message}`, "error"); }
     setSLoading(false);
   };
 
   // ── Transfer ──
+  const fetchTransferToken = async () => {
+    if (!tCA || tCA.length < 6) { toast("MASUKKAN CA TOKEN DULU", "warn"); return; }
+    if (!tChain) { toast("PILIH CHAIN DULU", "warn"); return; }
+    setTFetchingToken(true); setTTokenInfo(null);
+    const chainData = CHAINS_BY_KEY[tChain];
+    const info = await fetchTokenInfo(tCA, chainData?.id);
+    if (info) { setTTokenInfo(info); toast(`TOKEN DITEMUKAN: ${info.symbol}`, "success"); }
+    else toast("TOKEN TIDAK DITEMUKAN", "error");
+    setTFetchingToken(false);
+  };
+
   const execTransfer = async () => {
-    if (!wallet) { toast("Connect wallet dulu","error"); return; }
-    if (!tTo||!tAmt) { toast("Isi alamat & jumlah","warn"); return; }
+    if (!wallet) { toast("CONNECT WALLET DULU", "error"); return; }
+    if (!tTo || !tAmt) { toast("ISI ALAMAT & JUMLAH", "warn"); return; }
+    if (!tTokenInfo) { toast("FETCH TOKEN INFO DULU", "warn"); return; }
     setTLoading(true); setTStep(1);
     try {
-      if (chainId!==Number(tChain)) { await switchChain(tChain); await new Promise(r=>setTimeout(r,1200)); }
-      let hash;
-      const isNative = ["ETH","BNB","MATIC","AVAX"].includes(tTok);
-      if (isNative) {
-        const val = "0x"+BigInt(Math.round(parseFloat(tAmt)*1e18)).toString(16);
-        hash = await sendTx({from:wallet,to:tTo,value:val,gas:"0x5208"});
-      } else {
-        const addr = TOKEN_ADDRS[tTok]?.[tChain];
-        if (!addr) throw new Error(`${tTok} tidak tersedia di chain ini`);
-        const dec = tTok.startsWith("USD")?6:18;
-        const amt = BigInt(Math.round(parseFloat(tAmt)*10**dec)).toString(16).padStart(64,"0");
-        const data = "0xa9059cbb"+tTo.replace("0x","").padStart(64,"0")+amt;
-        hash = await sendTx({from:wallet,to:addr,data,gas:"0xEA60"});
-      }
+      const chainData = CHAINS_BY_KEY[tChain];
+      if (chainId !== chainData?.id) { await switchChain(chainData?.id); await new Promise(r => setTimeout(r, 1200)); }
+      const dec = tTokenInfo.decimals || 18;
+      const amt = BigInt(Math.round(parseFloat(tAmt) * 10 ** dec)).toString(16).padStart(64, "0");
+      const data = "0xa9059cbb" + tTo.replace("0x", "").padStart(64, "0") + amt;
+      const hash = await sendTx({ from: wallet, to: tCA, data, gas: "0xEA60" });
       setTHash(hash); setTStep(2);
-      addHistory({type:"Transfer",detail:`${tAmt} ${tTok} → ${sh(tTo)}`,hash,chainId:Number(tChain)});
-      toast(`✅ Transfer berhasil!`,"success");
-    } catch(e) { setTStep(0); toast(`Gagal: ${e.message}`,"error"); }
+      addHistory({ type: "Transfer", detail: `${tAmt} ${tTokenInfo.symbol} >> ${sh(tTo)}`, hash, chainId: chainData?.id });
+      toast("TRANSFER BERHASIL!", "success");
+    } catch (e) { setTStep(0); toast(`GAGAL: ${e.message}`, "error"); }
     setTLoading(false);
   };
 
-  const sendTx    = (tx) => window.ethereum.request({method:"eth_sendTransaction",params:[tx]});
-  const approveERC20 = async (token,spender,amt,dec) => {
-    const amount = "0x"+BigInt(Math.round(parseFloat(amt)*10**dec)).toString(16).padStart(64,"0");
-    const data   = "0x095ea7b3"+spender.replace("0x","").padStart(64,"0")+amount;
-    return sendTx({from:wallet,to:token,data,gas:"0xEA60"});
-  };
+  const sendTx = (tx) => window.ethereum.request({ method: "eth_sendTransaction", params: [tx] });
+  const explorerUrl = (cid, hash) => `${CHAINS[cid]?.explorer || "https://etherscan.io"}/tx/${hash}`;
+  const curChain = CHAINS[chainId] || Object.values(CHAINS_BY_KEY).find(c => c.id === chainId);
 
-  const explorerUrl  = (cid,hash) => `${CHAINS[cid]?.explorer||"https://etherscan.io"}/tx/${hash}`;
-  const curChain     = CHAINS[chainId] || Object.values(CHAINS_BY_KEY).find(c=>c.id===chainId);
-  const evmChainKeys = Object.entries(CHAINS_BY_KEY).filter(([,c])=>c.type==="evm");
-  const tokenOpts    = ["ETH","BNB","MATIC","AVAX","USDC","USDT","WETH"];
+  const scannedChainKeys = Object.keys(scannedTokens);
+  const hasScanned = scannedChainKeys.length > 0;
 
   const NAV = [
-    { key:"scanner",  icon:"🔍", label:"CA Scanner"  },
-    { key:"dex",      icon:"💱", label:"DEX Links"    },
-    { key:"bridge",   icon:"🌉", label:"Bridge"       },
-    { key:"swap",     icon:"⇄",  label:"Swap"         },
-    { key:"transfer", icon:"📤", label:"Transfer"     },
-    { key:"history",  icon:"📋", label:"Riwayat"      },
-    { key:"guide",    icon:"📖", label:"Panduan API"  },
+    { key: "scanner",  iconName: "scan",     label: "SCANNER"  },
+    { key: "dex",      iconName: "dex",      label: "DEX"      },
+    { key: "bridge",   iconName: "bridge",   label: "BRIDGE"   },
+    { key: "swap",     iconName: "swap",     label: "SWAP"      },
+    { key: "transfer", iconName: "transfer", label: "TRANSFER" },
+    { key: "history",  iconName: "history",  label: "RIWAYAT"  },
+    { key: "guide",    iconName: "guide",    label: "PANDUAN"  },
   ];
 
   // ── RENDER ──
   return (
     <div style={g.root}>
       <Toast items={toasts} />
-      {bridgeModal && <BridgeModal opp={bridgeModal} onClose={()=>setBridgeModal(null)} tokenName={tokenName} />}
+      {bridgeModal && <BridgeModal opp={bridgeModal} onClose={() => setBridgeModal(null)} scannedTokens={scannedTokens} />}
 
       {/* Topbar */}
       <div style={g.topbar}>
         <div style={g.brand}>
-          <span style={{ color:C.green, fontSize:"18px" }}>◈</span>
-          <span>ARB<span style={{color:C.green}}>X</span></span>
-          <span style={{ fontSize:"9px", color:C.muted, fontWeight:"400", letterSpacing:"0.05em" }}>UNIFIED</span>
+          <Icon name="arb" size={20} color={C.cyan} />
+          ARB<span style={{ color: C.cyan }}>X</span>
         </div>
-        <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:"10px" }}>
-          {wallet && curChain && <span style={g.tag(curChain.color||C.blue)}>● {curChain.name}</span>}
-          {wallet && <span style={{ fontSize:"11px", color:C.muted }}>{sh(wallet)}</span>}
-          <button style={g.btn(wallet?"ghost":"primary")} onClick={connect}>
-            {wallet?"✓ Connected":"Connect MetaMask"}
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "10px" }}>
+          {wallet && curChain && <span style={g.tag(curChain.color || C.blue)}>{curChain.name}</span>}
+          {wallet && <span style={{ fontFamily: FONT, fontSize: "8px", color: C.muted }}>{sh(wallet)}</span>}
+          <button style={g.btn(wallet ? "ghost" : "primary")} onClick={connect}>
+            <div style={{ ...g.row, gap: "6px" }}>
+              <Icon name={wallet ? "check" : "connect"} size={10} color={wallet ? C.green : C.white} />
+              {wallet ? "CONNECTED" : "CONNECT"}
+            </div>
           </button>
         </div>
       </div>
@@ -500,13 +731,13 @@ export default function App() {
         {/* Sidebar */}
         <div style={g.sidebar}>
           {NAV.map(n => (
-            <button key={n.key} style={g.navItem(page===n.key)} onClick={()=>setPage(n.key)}>
-              <span style={{fontSize:"14px"}}>{n.icon}</span>
+            <button key={n.key} style={g.navItem(page === n.key)} onClick={() => setPage(n.key)}>
+              <Icon name={n.iconName} size={12} color={page === n.key ? C.cyan : C.muted} />
               {n.label}
             </button>
           ))}
-          <div style={{ marginTop:"auto", padding:"12px 16px", borderTop:`1px solid ${C.border}` }}>
-            {lastScan && <div style={{ fontSize:"10px", color:C.muted }}>Scan: {lastScan}</div>}
+          <div style={{ marginTop: "auto", padding: "12px", borderTop: `2px solid ${C.border2}` }}>
+            {lastScan && <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, lineHeight: "1.8" }}>LAST SCAN<br />{lastScan}</div>}
           </div>
         </div>
 
@@ -514,41 +745,48 @@ export default function App() {
         <div style={g.main}>
 
           {/* ── CA SCANNER ── */}
-          {page==="scanner" && (
-            <div style={{ display:"flex", flexDirection:"column", gap:"16px" }}>
-              <SectionHeader icon="🔍" title="CA Scanner" sub="Scan harga token lintas chain & temukan peluang arbitrasi" />
+          {page === "scanner" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <SectionHeader iconName="scan" title="CA SCANNER" sub="MASUKKAN CONTRACT ADDRESS TOKEN DI TIAP CHAIN, LALU SCAN UNTUK TEMUKAN PELUANG ARBITRASI" />
 
-              {/* Input CA */}
               <div style={g.card}>
-                <div style={{ ...g.between, marginBottom:"14px" }}>
-                  <div style={{ fontSize:"13px", fontWeight:"800", color:"#fff" }}>Contract Addresses</div>
-                  <input value={tokenName} onChange={e=>setTokenName(e.target.value)} placeholder="Nama Token" style={{ ...g.input, width:"130px", textAlign:"center", fontWeight:"700", fontSize:"13px" }} />
+                <div style={{ ...g.between, marginBottom: "14px" }}>
+                  <div style={{ fontFamily: FONT, fontSize: "10px", color: C.white }}>CONTRACT ADDRESSES</div>
+                  <div style={{ ...g.row }}>
+                    <label style={{ ...g.label, margin: 0 }}>NAMA TOKEN:</label>
+                    <input value={tokenName} onChange={e => setTokenName(e.target.value)} placeholder="cth: PEPE" style={{ ...g.input, width: "120px", textAlign: "center" }} />
+                  </div>
                 </div>
-                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:"10px" }}>
-                  {Object.entries(CHAINS_BY_KEY).map(([key,chain]) => (
-                    <div key={key} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:"7px", padding:"10px 12px" }}>
-                      <div style={{ ...g.between, marginBottom:"7px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: "10px" }}>
+                  {Object.entries(CHAINS_BY_KEY).map(([key, chain]) => (
+                    <div key={key} style={{ background: C.surface, border: `2px solid ${C.border}`, padding: "10px" }}>
+                      <div style={{ ...g.between, marginBottom: "8px" }}>
                         <div style={g.row}>
                           <div style={g.dot(chain.color)} />
-                          <span style={{ fontSize:"11px", fontWeight:"700", color:"#fff" }}>{chain.name}</span>
-                          <span style={{ fontSize:"9px", color:C.muted }}>({chain.symbol})</span>
+                          <span style={{ fontFamily: FONT, fontSize: "8px", color: C.white }}>{chain.name}</span>
+                          <span style={{ fontFamily: FONT, fontSize: "7px", color: C.muted }}>{chain.symbol}</span>
                         </div>
                         <div style={g.row}>
-                          {scanLoading[key] && <span style={{ fontSize:"10px", color:C.yellow }}>⟳</span>}
-                          {scanResults[key]&&!scanResults[key].error && <span style={g.tag(C.green)}>✓</span>}
-                          {scanResults[key]?.error && <span style={g.tag(C.red)}>✗</span>}
+                          {scanLoading[key] && <span style={{ fontFamily: FONT, fontSize: "8px", color: C.yellow }}>...</span>}
+                          {scanResults[key] && !scanResults[key].error && <span style={g.tag(C.green)}>OK</span>}
+                          {scanResults[key]?.error && <span style={g.tag(C.red)}>ERR</span>}
                         </div>
                       </div>
-                      <input value={caInputs[key]||""} onChange={e=>setCaInputs(p=>({...p,[key]:e.target.value}))}
-                        placeholder={chain.type==="svm"?"SolanaAddressBase58...":"0x..."} style={{ ...g.input, fontSize:"11px", padding:"7px 10px" }} />
-                      {scanResults[key]&&!scanResults[key].error && (
-                        <div style={{ marginTop:"7px", display:"flex", gap:"8px", flexWrap:"wrap" }}>
-                          <span style={{ fontSize:"12px", fontWeight:"700", color:C.green }}>${fmt(scanResults[key].price)}</span>
-                          {scanResults[key].dex && <span style={g.tag(chain.color)}>{scanResults[key].dex}</span>}
-                          {scanResults[key].liquidity && <span style={{ fontSize:"10px", color:C.muted }}>Liq: ${(scanResults[key].liquidity/1000).toFixed(1)}K</span>}
-                          {scanResults[key].priceChange24h!=null && (
-                            <span style={{ fontSize:"10px", color:scanResults[key].priceChange24h>=0?C.green:C.red }}>
-                              {scanResults[key].priceChange24h>=0?"▲":"▼"} {Math.abs(scanResults[key].priceChange24h).toFixed(2)}%
+                      <input
+                        value={caInputs[key] || ""}
+                        onChange={e => setCaInputs(p => ({ ...p, [key]: e.target.value }))}
+                        placeholder={chain.type === "svm" ? "SOLANA ADDRESS..." : "0x..."}
+                        style={{ ...g.input, fontSize: "8px", padding: "8px 10px" }}
+                      />
+                      {scanResults[key] && !scanResults[key].error && (
+                        <div style={{ marginTop: "8px", display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
+                          <span style={{ fontFamily: FONT, fontSize: "10px", color: C.green }}>${fmt(scanResults[key].price)}</span>
+                          {scanResults[key].symbol && <span style={g.tag(chain.color)}>{scanResults[key].symbol}</span>}
+                          {scanResults[key].dex && <span style={{ fontFamily: FONT, fontSize: "7px", color: C.muted }}>{scanResults[key].dex}</span>}
+                          {scanResults[key].liquidity && <span style={{ fontFamily: FONT, fontSize: "7px", color: C.muted }}>LIQ: ${(scanResults[key].liquidity / 1000).toFixed(1)}K</span>}
+                          {scanResults[key].priceChange24h != null && (
+                            <span style={{ fontFamily: FONT, fontSize: "7px", color: scanResults[key].priceChange24h >= 0 ? C.green : C.red }}>
+                              {scanResults[key].priceChange24h >= 0 ? "+" : ""}{Math.abs(scanResults[key].priceChange24h).toFixed(2)}%
                             </span>
                           )}
                         </div>
@@ -556,57 +794,70 @@ export default function App() {
                     </div>
                   ))}
                 </div>
-                <div style={{ ...g.row, marginTop:"14px" }}>
-                  <button style={g.btn("primary",scanning)} onClick={runScan} disabled={scanning}>
-                    {scanning?"⟳ Scanning…":"🔍 Scan Semua Chain"}
+                <div style={{ ...g.row, marginTop: "14px" }}>
+                  <button style={g.btn("primary", scanning)} onClick={runScan} disabled={scanning}>
+                    <div style={{ ...g.row, gap: "6px" }}>
+                      <Icon name="scan" size={10} color={C.white} />
+                      {scanning ? "SCANNING..." : "SCAN SEMUA CHAIN"}
+                    </div>
                   </button>
-                  <button style={{ ...g.btn("ghost"), fontSize:"10px" }} onClick={()=>setAutoRefresh(p=>!p)}>
-                    {autoRefresh?"⏹ Stop Auto":"▶ Auto 30s"}
+                  <button style={g.btn("ghost")} onClick={() => setAutoRefresh(p => !p)}>
+                    {autoRefresh ? "STOP AUTO" : "AUTO 30S"}
                   </button>
-                  {autoRefresh && <span style={g.tag(C.green)}>● LIVE</span>}
+                  {autoRefresh && <span style={g.tag(C.green)}>LIVE</span>}
                 </div>
               </div>
 
-              {/* Opportunities */}
               {opportunities.length > 0 && (
                 <div style={g.card}>
-                  <div style={{ fontSize:"13px", fontWeight:"800", color:"#fff", marginBottom:"12px" }}>
-                    ⚡ Peluang Arbitrasi ({opportunities.length})
+                  <div style={{ fontFamily: FONT, fontSize: "10px", color: C.white, marginBottom: "12px" }}>
+                    PELUANG ARBITRASI ({opportunities.length})
                   </div>
-                  {opportunities.map((opp,i) => {
-                    const bc = CHAINS_BY_KEY[opp.buyChain]||CHAINS[opp.buyChain];
-                    const sc = CHAINS_BY_KEY[opp.sellChain]||CHAINS[opp.sellChain];
-                    const profit = ((opp.sellPrice/opp.buyPrice-1)*100).toFixed(3);
+                  {opportunities.map((opp, i) => {
+                    const bc = CHAINS_BY_KEY[opp.buyChain] || CHAINS[opp.buyChain];
+                    const sc = CHAINS_BY_KEY[opp.sellChain] || CHAINS[opp.sellChain];
+                    const profit = ((opp.sellPrice / opp.buyPrice - 1) * 100).toFixed(3);
                     return (
-                      <div key={i} style={{ ...g.card2, marginBottom:"10px", borderLeft:`3px solid ${opp.spread>5?C.green:opp.spread>2?C.yellow:C.muted}` }}>
+                      <div key={i} style={{ ...g.card2, marginBottom: "10px", borderLeft: `4px solid ${opp.spread > 5 ? C.green : opp.spread > 2 ? C.yellow : C.muted}` }}>
                         <div style={g.between}>
                           <div style={g.row}>
-                            <span style={g.chip(bc?.color||C.blue)}>BUY {bc?.name||opp.buyChain}</span>
-                            <span style={{ color:C.muted, fontSize:"14px" }}>→</span>
-                            <span style={g.chip(sc?.color||C.purple)}>SELL {sc?.name||opp.sellChain}</span>
+                            <span style={g.chip(bc?.color || C.blue)}>BUY {bc?.name || opp.buyChain}</span>
+                            <span style={{ color: C.muted, fontFamily: FONT, fontSize: "8px" }}>{">>"}</span>
+                            <span style={g.chip(sc?.color || C.blueL)}>SELL {sc?.name || opp.sellChain}</span>
                           </div>
-                          <span style={{ ...g.tag(opp.spread>5?C.green:opp.spread>2?C.yellow:C.muted), fontSize:"12px" }}>+{opp.spread}%</span>
+                          <span style={{ ...g.tag(opp.spread > 5 ? C.green : opp.spread > 2 ? C.yellow : C.muted), fontSize: "9px" }}>+{opp.spread}%</span>
                         </div>
-                        <div style={{ ...g.row, marginTop:"8px", fontSize:"11px", color:C.muted }}>
-                          <span>Beli: <b style={{color:C.green}}>${fmt(opp.buyPrice)}</b></span>
+                        <div style={{ ...g.row, marginTop: "8px", fontFamily: FONT, fontSize: "8px", color: C.muted, flexWrap: "wrap", gap: "6px", lineHeight: "1.8" }}>
+                          <span>BELI: <b style={{ color: C.green }}>${fmt(opp.buyPrice)}</b></span>
                           <span>|</span>
-                          <span>Jual: <b style={{color:C.yellow}}>${fmt(opp.sellPrice)}</b></span>
+                          <span>JUAL: <b style={{ color: C.yellow }}>${fmt(opp.sellPrice)}</b></span>
                           <span>|</span>
-                          <span>Profit: <b style={{color:C.green}}>+{profit}%</b></span>
-                          {opp.buyLiq && <span>| Liq beli: ${(opp.buyLiq/1000).toFixed(0)}K</span>}
+                          <span>PROFIT: <b style={{ color: C.green }}>+{profit}%</b></span>
+                          {opp.buyLiq && <span>| LIQ: ${(opp.buyLiq / 1000).toFixed(0)}K</span>}
                         </div>
-                        <div style={{ ...g.row, marginTop:"10px" }}>
-                          {DEXES[opp.buyChain]?.slice(0,1).map(d=>(
-                            <button key={d.name} style={g.btn("ghost")} onClick={()=>window.open(d.url(opp.buyCA||""),"_blank")}>
-                              Beli di {d.name} ↗
+                        <div style={{ ...g.row, marginTop: "10px", flexWrap: "wrap" }}>
+                          {DEXES[opp.buyChain]?.slice(0, 1).map(d => (
+                            <button key={d.name} style={g.btn("ghost")} onClick={() => window.open(d.url(opp.buyCA || ""), "_blank")}>
+                              <div style={{ ...g.row, gap: "4px" }}>
+                                <Icon name="dex" size={8} color={C.text} />
+                                BELI {d.name}
+                              </div>
                             </button>
                           ))}
-                          {DEXES[opp.sellChain]?.slice(0,1).map(d=>(
-                            <button key={d.name} style={g.btn("ghost")} onClick={()=>window.open(d.url(opp.sellCA||""),"_blank")}>
-                              Jual di {d.name} ↗
+                          {DEXES[opp.sellChain]?.slice(0, 1).map(d => (
+                            <button key={d.name} style={g.btn("ghost")} onClick={() => window.open(d.url(opp.sellCA || ""), "_blank")}>
+                              <div style={{ ...g.row, gap: "4px" }}>
+                                <Icon name="dex" size={8} color={C.text} />
+                                JUAL {d.name}
+                              </div>
                             </button>
                           ))}
-                          <button style={g.btn("purple")} onClick={()=>setBridgeModal(opp)}>🌉 Bridge</button>
+                          <button style={g.btn("cyan")} onClick={() => setBridgeModal(opp)}>
+                            <div style={{ ...g.row, gap: "4px" }}>
+                              <Icon name="bridge" size={8} color={C.bg} />
+                              BRIDGE
+                            </div>
+                          </button>
                         </div>
                       </div>
                     );
@@ -616,235 +867,301 @@ export default function App() {
             </div>
           )}
 
-          {/* ── DEX LINKS ── */}
-          {page==="dex" && (
-            <div style={{ display:"flex", flexDirection:"column", gap:"16px" }}>
-              <SectionHeader icon="💱" title="DEX Links" sub="Buka DEX per chain dengan CA yang sudah diisi di Scanner" />
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:"12px" }}>
-                {Object.entries(DEXES).map(([chainKey, dexList]) => {
-                  const c = CHAINS_BY_KEY[chainKey] || CHAINS[chainKey];
-                  const ca = caInputs[chainKey];
-                  return (
-                    <div key={chainKey} style={{ ...g.card, borderTop:`3px solid ${c?.color||C.blue}` }}>
-                      <div style={g.row}>
-                        <div style={g.dot(c?.color||C.blue)} />
-                        <span style={{ fontWeight:"700", fontSize:"13px" }}>{c?.name||chainKey}</span>
-                        {!ca && <span style={g.tag(C.yellow)}>CA belum diisi</span>}
-                      </div>
-                      {ca && <div style={{ fontSize:"10px", color:C.muted, margin:"6px 0", fontFamily:"monospace" }}>{sh(ca)}</div>}
-                      {scanResults[chainKey]?.price && (
-                        <div style={{ margin:"6px 0", padding:"6px 8px", background:C.surface, borderRadius:"5px" }}>
-                          <span style={{ fontWeight:"800", color:C.green }}>${fmt(scanResults[chainKey].price)}</span>
-                          <span style={{ fontSize:"10px", color:C.muted, marginLeft:"6px" }}>last scan</span>
+          {/* ── DEX ── */}
+          {page === "dex" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <SectionHeader iconName="dex" title="DEX LINKS" sub="BUKA DEX DENGAN CA TOKEN YANG SUDAH DI-SCAN" />
+              {!hasScanned ? (
+                <div style={g.warnBox}>
+                  <div style={{ ...g.row, marginBottom: "8px" }}>
+                    <Icon name="warning" size={12} color={C.yellow} />
+                    <span style={{ fontFamily: FONT, fontSize: "8px", color: C.yellow }}>SCAN DULU</span>
+                  </div>
+                  <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, lineHeight: "1.8" }}>
+                    Masukkan CA token di menu SCANNER dan klik SCAN SEMUA CHAIN terlebih dahulu.
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: "12px" }}>
+                  {Object.entries(DEXES).map(([chainKey, dexList]) => {
+                    const c = CHAINS_BY_KEY[chainKey];
+                    const ca = caInputs[chainKey];
+                    const result = scanResults[chainKey];
+                    if (!ca) return null;
+                    return (
+                      <div key={chainKey} style={{ ...g.card, borderTop: `4px solid ${c?.color || C.blue}` }}>
+                        <div style={g.row}>
+                          <div style={g.dot(c?.color || C.blue)} />
+                          <span style={{ fontFamily: FONT, fontSize: "9px", color: C.white }}>{c?.name || chainKey}</span>
                         </div>
-                      )}
-                      <div style={{ display:"flex", flexDirection:"column", gap:"6px", marginTop:"10px" }}>
-                        {dexList.map(d => (
-                          <button key={d.name} style={{ ...g.btn("ghost"), textAlign:"left", opacity:ca?1:0.4 }}
-                            onClick={() => ca ? window.open(d.url(ca),"_blank") : toast("Isi CA dulu di Scanner","warn")}>
-                            {d.name} ↗
-                          </button>
-                        ))}
+                        {result?.symbol && <div style={{ fontFamily: FONT, fontSize: "8px", color: C.cyan, marginTop: "6px" }}>{result.symbol}</div>}
+                        {result?.price && (
+                          <div style={{ fontFamily: FONT, fontSize: "10px", color: C.green, marginTop: "4px" }}>${fmt(result.price)}</div>
+                        )}
+                        <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "10px" }}>
+                          {dexList.map(d => (
+                            <button key={d.name} style={{ ...g.btn("ghost"), textAlign: "left" }} onClick={() => window.open(d.url(ca), "_blank")}>
+                              <div style={{ ...g.row, gap: "6px" }}>
+                                <Icon name="extern" size={8} color={C.blue} />
+                                {d.name}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
           {/* ── BRIDGE ── */}
-          {page==="bridge" && (
-            <div style={{ display:"flex", flexDirection:"column", gap:"16px", maxWidth:"560px" }}>
-              <SectionHeader icon="🌉" title="Bridge" sub="Transfer token antar chain via Across Protocol" />
-              <div style={g.card}>
-                <Steps step={bStep} labels={["Pilih Route","Konfirmasi","Selesai"]} />
-                <div style={g.grid2}>
-                  <div>
-                    <label style={g.label}>DARI CHAIN</label>
-                    <select style={g.select} value={bFrom} onChange={e=>{setBFrom(e.target.value);setBStep(0);setBQuote(null);}}>
-                      {Object.entries(CHAINS_BY_KEY).filter(([,c])=>c.type==="evm").map(([k,c])=>(
-                        <option key={k} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
+          {page === "bridge" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px", maxWidth: "560px" }}>
+              <SectionHeader iconName="bridge" title="BRIDGE" sub="PINDAHKAN TOKEN ANTAR CHAIN VIA BRIDGE RESMI" />
+              {!hasScanned ? (
+                <div style={g.warnBox}>
+                  <div style={{ ...g.row, marginBottom: "8px" }}>
+                    <Icon name="warning" size={12} color={C.yellow} />
+                    <span style={{ fontFamily: FONT, fontSize: "8px", color: C.yellow }}>SCAN DULU</span>
                   </div>
-                  <div>
-                    <label style={g.label}>KE CHAIN</label>
-                    <select style={g.select} value={bTo} onChange={e=>{setBTo(e.target.value);setBStep(0);setBQuote(null);}}>
-                      {Object.entries(CHAINS_BY_KEY).filter(([,c])=>c.type==="evm").map(([k,c])=>(
-                        <option key={k} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
+                  <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, lineHeight: "1.8" }}>
+                    Masukkan CA token di menu SCANNER dan klik SCAN terlebih dahulu. Bridge hanya tersedia untuk token yang sudah di-scan.
                   </div>
                 </div>
-                <div style={{ ...g.grid2, marginTop:"12px" }}>
-                  <div>
-                    <label style={g.label}>TOKEN</label>
-                    <select style={g.select} value={bToken} onChange={e=>{setBToken(e.target.value);setBStep(0);}}>
-                      {["USDC","USDT","WETH"].map(t=><option key={t}>{t}</option>)}
-                    </select>
+              ) : (
+                <div style={g.card}>
+                  <div style={g.grid2}>
+                    <div>
+                      <label style={g.label}>DARI CHAIN</label>
+                      <select style={g.select} value={bFrom} onChange={e => setBFrom(e.target.value)}>
+                        <option value="">-- PILIH --</option>
+                        {scannedChainKeys.map(k => (
+                          <option key={k} value={k}>{CHAINS_BY_KEY[k]?.name} ({scannedTokens[k]?.symbol})</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={g.label}>KE CHAIN</label>
+                      <select style={g.select} value={bTo} onChange={e => setBTo(e.target.value)}>
+                        <option value="">-- PILIH --</option>
+                        {scannedChainKeys.filter(k => k !== bFrom).map(k => (
+                          <option key={k} value={k}>{CHAINS_BY_KEY[k]?.name} ({scannedTokens[k]?.symbol})</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                  <div>
-                    <label style={g.label}>JUMLAH</label>
-                    <input style={g.input} placeholder="0.00" value={bAmt} onChange={e=>{setBAmt(e.target.value);setBStep(0);}} />
-                  </div>
+
+                  {bFrom && bTo && (() => {
+                    const fromChain = CHAINS_BY_KEY[bFrom];
+                    const toChain = CHAINS_BY_KEY[bTo];
+                    const fromToken = scannedTokens[bFrom];
+                    const toToken = scannedTokens[bTo];
+                    const compatible = BRIDGES.filter(b => b.supports.includes(fromChain?.type) && b.supports.includes(toChain?.type));
+                    return (
+                      <div style={{ marginTop: "14px" }}>
+                        <div style={{ background: C.surface, border: `2px solid ${C.border}`, padding: "10px", marginBottom: "12px" }}>
+                          <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, marginBottom: "6px" }}>TOKEN YANG AKAN DI-BRIDGE</div>
+                          <div style={{ fontFamily: FONT, fontSize: "9px", color: C.white }}>{fromToken?.symbol || "TOKEN"}</div>
+                          <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, marginTop: "4px" }}>
+                            {fromChain?.name}: <span style={{ color: C.green }}>${fmt(fromToken?.price)}</span> &nbsp;|&nbsp; {toChain?.name}: <span style={{ color: C.yellow }}>${fmt(toToken?.price)}</span>
+                          </div>
+                        </div>
+                        {compatible.length === 0 ? (
+                          <div style={g.warnBox}>
+                            <div style={{ ...g.row, marginBottom: "6px" }}>
+                              <Icon name="warning" size={12} color={C.yellow} />
+                              <span style={{ fontFamily: FONT, fontSize: "8px", color: C.yellow }}>TIDAK ADA BRIDGE</span>
+                            </div>
+                            <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, lineHeight: "1.8" }}>
+                              Tidak ada bridge yang mendukung rute {fromChain?.name} ke {toChain?.name} untuk token ini. Coba rute lain atau gunakan DEX di masing-masing chain.
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                            <div style={{ fontFamily: FONT, fontSize: "8px", color: C.muted, marginBottom: "4px" }}>PILIH BRIDGE:</div>
+                            {compatible.map(b => {
+                              const url = b.url(fromChain?.id, toChain?.id, fromToken?.ca, "");
+                              return (
+                                <div key={b.name} style={{ background: C.surface, border: `2px solid ${C.border2}`, padding: "10px 12px", cursor: "pointer" }} onClick={() => window.open(url, "_blank")}>
+                                  <div style={g.between}>
+                                    <div>
+                                      <div style={{ fontFamily: FONT, fontSize: "9px", color: C.white, marginBottom: "4px" }}>{b.name}</div>
+                                      <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted }}>{b.desc}</div>
+                                    </div>
+                                    <div style={{ ...g.row }}>
+                                      <Icon name="extern" size={10} color={C.blue} />
+                                      <span style={g.tag(C.blue)}>BUKA</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
-                <div style={{ marginTop:"12px" }}>
-                  <label style={g.label}>PENERIMA</label>
-                  <input style={g.input} placeholder="0x... (kosong = wallet sendiri)" value={bRecip} onChange={e=>setBRecip(e.target.value)} />
-                </div>
-                {bQuote && (
-                  <div style={g.quoteBox}>
-                    <div style={{ fontSize:"10px", color:C.muted, marginBottom:"8px" }}>QUOTE ACROSS</div>
-                    <div style={g.between}><span style={{ color:C.muted }}>Estimasi diterima</span><b style={{ color:C.green }}>{bQuote.outAmt} {bToken}</b></div>
-                    <div style={g.between}><span style={{ color:C.muted }}>Bridge fee</span><span>{bQuote.fee} {bToken}</span></div>
-                    <div style={g.between}><span style={{ color:C.muted }}>Estimasi waktu</span><span>{bQuote.eta}</span></div>
-                  </div>
-                )}
-                {bHash && bStep===2 && (
-                  <div style={g.successBox}>
-                    <div style={{ color:C.green, fontWeight:"700", marginBottom:"6px" }}>✅ Bridge Berhasil!</div>
-                    <a href={explorerUrl(Number(bFrom),bHash)} target="_blank" rel="noreferrer" style={{ color:C.blue, fontSize:"11px" }}>Lihat di Explorer ↗</a>
-                  </div>
-                )}
-                <div style={{ ...g.row, marginTop:"14px" }}>
-                  {bStep<1 && <button style={g.btn("primary",bLoading||!bAmt)} onClick={getAcrossQuote} disabled={bLoading||!bAmt}>{bLoading?"⟳ Loading…":"Cek Quote"}</button>}
-                  {bStep===1 && <button style={g.btn("primary",bLoading)} onClick={execBridge} disabled={bLoading}>{bLoading?"⟳ Proses…":"Eksekusi Bridge"}</button>}
-                  {bStep>0 && <button style={g.btn("ghost")} onClick={()=>{setBStep(0);setBQuote(null);setBHash(null);}}>Reset</button>}
-                </div>
-                <div style={{ marginTop:"14px" }}>
-                  <div style={{ fontSize:"10px", color:C.muted, marginBottom:"8px" }}>PILIHAN BRIDGE MANUAL</div>
-                  <div style={{ display:"flex", gap:"6px", flexWrap:"wrap" }}>
-                    {BRIDGES.filter(b=>b.supports.includes("evm")).map(b=>(
-                      <button key={b.name} style={g.btn("ghost")} onClick={()=>window.open(b.url(bFrom,bTo,bToken,bAmt),"_blank")}>{b.icon} {b.name}</button>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           )}
 
           {/* ── SWAP ── */}
-          {page==="swap" && (
-            <div style={{ display:"flex", flexDirection:"column", gap:"16px", maxWidth:"560px" }}>
-              <SectionHeader icon="⇄" title="Cross-Chain Swap" sub="Swap token lintas chain via deBridge DLN" />
-              <div style={g.card}>
-                <Steps step={sStep} labels={["Pilih Pair","Konfirmasi","Selesai"]} />
-                <div style={g.grid2}>
-                  <div>
-                    <label style={g.label}>CHAIN ASAL</label>
-                    <select style={g.select} value={sFrom} onChange={e=>{setSFrom(e.target.value);setSStep(0);}}>
-                      {Object.entries(CHAINS_BY_KEY).filter(([,c])=>c.type==="evm").map(([k,c])=>(
-                        <option key={k} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
+          {page === "swap" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px", maxWidth: "560px" }}>
+              <SectionHeader iconName="swap" title="CROSS-CHAIN SWAP" sub="SWAP TOKEN LINTAS CHAIN VIA DEBRIDGE DLN" />
+              {!hasScanned ? (
+                <div style={g.warnBox}>
+                  <div style={{ ...g.row, marginBottom: "8px" }}>
+                    <Icon name="warning" size={12} color={C.yellow} />
+                    <span style={{ fontFamily: FONT, fontSize: "8px", color: C.yellow }}>SCAN DULU</span>
                   </div>
-                  <div>
-                    <label style={g.label}>CHAIN TUJUAN</label>
-                    <select style={g.select} value={sTo} onChange={e=>{setSTo(e.target.value);setSStep(0);}}>
-                      {Object.entries(CHAINS_BY_KEY).filter(([,c])=>c.type==="evm").map(([k,c])=>(
-                        <option key={k} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={g.label}>TOKEN ASAL</label>
-                    <select style={g.select} value={sFTok} onChange={e=>{setSFTok(e.target.value);setSStep(0);}}>
-                      {tokenOpts.map(t=><option key={t}>{t}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={g.label}>TOKEN TUJUAN</label>
-                    <select style={g.select} value={sTTok} onChange={e=>{setSTTok(e.target.value);setSStep(0);}}>
-                      {tokenOpts.map(t=><option key={t}>{t}</option>)}
-                    </select>
+                  <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, lineHeight: "1.8" }}>
+                    Scan token di menu SCANNER terlebih dahulu. Token yang muncul di sini hanya yang sudah di-scan.
                   </div>
                 </div>
-                <div style={{ marginTop:"12px" }}>
-                  <label style={g.label}>JUMLAH</label>
-                  <input style={g.input} placeholder="0.00" value={sAmt} onChange={e=>{setSAmt(e.target.value);setSStep(0);}} />
-                </div>
-                {sQuote && (
-                  <div style={g.quoteBox}>
-                    <div style={{ fontSize:"10px", color:C.muted, marginBottom:"8px" }}>QUOTE DEBRIDGE</div>
-                    <div style={g.between}><span style={{ color:C.muted }}>Estimasi diterima</span><b style={{ color:C.green }}>{sQuote.outAmt} {sTTok}</b></div>
+              ) : (
+                <div style={g.card}>
+                  <Steps step={sStep} labels={["PILIH", "KONFIRM", "SELESAI"]} />
+                  <div style={g.grid2}>
+                    <div>
+                      <label style={g.label}>CHAIN ASAL</label>
+                      <select style={g.select} value={sFrom} onChange={e => { setSFrom(e.target.value); setSStep(0); setSQuote(null); }}>
+                        <option value="">-- PILIH --</option>
+                        {scannedChainKeys.map(k => (
+                          <option key={k} value={k}>{CHAINS_BY_KEY[k]?.name} ({scannedTokens[k]?.symbol})</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={g.label}>CHAIN TUJUAN</label>
+                      <select style={g.select} value={sTo} onChange={e => { setSTo(e.target.value); setSStep(0); setSQuote(null); }}>
+                        <option value="">-- PILIH --</option>
+                        {scannedChainKeys.filter(k => k !== sFrom).map(k => (
+                          <option key={k} value={k}>{CHAINS_BY_KEY[k]?.name} ({scannedTokens[k]?.symbol})</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                )}
-                {sHash && sStep===2 && (
-                  <div style={g.successBox}>
-                    <div style={{ color:C.green, fontWeight:"700", marginBottom:"6px" }}>✅ Swap Berhasil!</div>
-                    <a href={explorerUrl(Number(sFrom),sHash)} target="_blank" rel="noreferrer" style={{ color:C.blue, fontSize:"11px" }}>Lihat di Explorer ↗</a>
+                  <div style={{ marginTop: "12px" }}>
+                    <label style={g.label}>JUMLAH {sFrom ? `(${scannedTokens[sFrom]?.symbol})` : ""}</label>
+                    <input style={g.input} placeholder="0.00" value={sAmt} onChange={e => { setSAmt(e.target.value); setSStep(0); }} />
                   </div>
-                )}
-                <div style={{ ...g.row, marginTop:"14px" }}>
-                  {sStep<1 && <button style={g.btn("primary",sLoading||!sAmt)} onClick={getDeBridgeQuote} disabled={sLoading||!sAmt}>{sLoading?"⟳ Loading…":"Cek Quote"}</button>}
-                  {sStep===1 && <button style={g.btn("primary",sLoading)} onClick={execSwap} disabled={sLoading}>{sLoading?"⟳ Proses…":"Eksekusi Swap"}</button>}
-                  {sStep>0 && <button style={g.btn("ghost")} onClick={()=>{setSStep(0);setSQuote(null);setSHash(null);}}>Reset</button>}
+                  {sQuote && (
+                    <div style={{ background: C.surface, border: `2px solid ${C.border2}`, padding: "12px", marginTop: "12px" }}>
+                      <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, marginBottom: "8px" }}>QUOTE DEBRIDGE</div>
+                      <div style={g.between}>
+                        <span style={{ fontFamily: FONT, fontSize: "8px", color: C.muted }}>ESTIMASI DITERIMA</span>
+                        <b style={{ fontFamily: FONT, fontSize: "9px", color: C.green }}>{sQuote.outAmt} {sQuote.toToken?.symbol}</b>
+                      </div>
+                    </div>
+                  )}
+                  {sHash && sStep === 2 && (
+                    <div style={g.successBox}>
+                      <div style={{ ...g.row, marginBottom: "6px" }}>
+                        <Icon name="check" size={12} color={C.green} />
+                        <span style={{ fontFamily: FONT, fontSize: "8px", color: C.green }}>SWAP BERHASIL!</span>
+                      </div>
+                      <a href={explorerUrl(CHAINS_BY_KEY[sFrom]?.id, sHash)} target="_blank" rel="noreferrer" style={{ fontFamily: FONT, fontSize: "7px", color: C.blue }}>LIHAT DI EXPLORER</a>
+                    </div>
+                  )}
+                  <div style={{ ...g.row, marginTop: "14px" }}>
+                    {sStep < 1 && <button style={g.btn("primary", sLoading || !sAmt || !sFrom || !sTo)} onClick={getSwapQuote} disabled={sLoading || !sAmt || !sFrom || !sTo}>{sLoading ? "LOADING..." : "CEK QUOTE"}</button>}
+                    {sStep === 1 && <button style={g.btn("primary", sLoading)} onClick={execSwap} disabled={sLoading}>{sLoading ? "PROSES..." : "EKSEKUSI SWAP"}</button>}
+                    {sStep > 0 && <button style={g.btn("ghost")} onClick={() => { setSStep(0); setSQuote(null); setSHash(null); }}>RESET</button>}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
           {/* ── TRANSFER ── */}
-          {page==="transfer" && (
-            <div style={{ display:"flex", flexDirection:"column", gap:"16px", maxWidth:"520px" }}>
-              <SectionHeader icon="📤" title="Transfer" sub="Kirim token ke alamat lain di chain manapun" />
+          {page === "transfer" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px", maxWidth: "520px" }}>
+              <SectionHeader iconName="transfer" title="TRANSFER TOKEN" sub="KIRIM TOKEN ERC-20 KE ALAMAT LAIN. MASUKKAN CA TOKEN DULU UNTUK VERIFIKASI." />
               <div style={g.card}>
-                <Steps step={tStep} labels={["Isi Data","Proses","Selesai"]} />
-                <div style={g.grid2}>
-                  <div>
-                    <label style={g.label}>CHAIN</label>
-                    <select style={g.select} value={tChain} onChange={e=>{setTChain(e.target.value);setTStep(0);}}>
-                      {Object.entries(CHAINS_BY_KEY).filter(([,c])=>c.type==="evm").map(([k,c])=>(
-                        <option key={k} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
+                <Steps step={tStep} labels={["INPUT CA", "PROSES", "SELESAI"]} />
+                <div>
+                  <label style={g.label}>CHAIN</label>
+                  <select style={g.select} value={tChain} onChange={e => { setTChain(e.target.value); setTStep(0); setTTokenInfo(null); }}>
+                    <option value="">-- PILIH CHAIN --</option>
+                    {Object.entries(CHAINS_BY_KEY).filter(([, c]) => c.type === "evm").map(([k, c]) => (
+                      <option key={k} value={k}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ marginTop: "12px" }}>
+                  <label style={g.label}>CONTRACT ADDRESS TOKEN</label>
+                  <div style={g.row}>
+                    <input style={{ ...g.input, flex: 1 }} placeholder="0x..." value={tCA} onChange={e => { setTCA(e.target.value); setTTokenInfo(null); setTStep(0); }} />
+                    <button style={g.btn("cyan", tFetchingToken || !tCA || !tChain)} onClick={fetchTransferToken} disabled={tFetchingToken || !tCA || !tChain}>
+                      {tFetchingToken ? "..." : "CEK"}
+                    </button>
                   </div>
-                  <div>
-                    <label style={g.label}>TOKEN</label>
-                    <select style={g.select} value={tTok} onChange={e=>setTTok(e.target.value)}>
-                      {tokenOpts.map(t=><option key={t}>{t}</option>)}
-                    </select>
-                  </div>
                 </div>
-                <div style={{ marginTop:"12px" }}>
-                  <label style={g.label}>ALAMAT PENERIMA</label>
-                  <input style={g.input} placeholder="0x..." value={tTo} onChange={e=>setTTo(e.target.value)} />
-                </div>
-                <div style={{ marginTop:"12px" }}>
-                  <label style={g.label}>JUMLAH</label>
-                  <input style={g.input} placeholder="0.00" value={tAmt} onChange={e=>setTAmt(e.target.value)} />
-                </div>
-                {tHash && tStep===2 && (
-                  <div style={g.successBox}>
-                    <div style={{ color:C.green, fontWeight:"700", marginBottom:"6px" }}>✅ Transfer Berhasil!</div>
-                    <a href={explorerUrl(Number(tChain),tHash)} target="_blank" rel="noreferrer" style={{ color:C.blue, fontSize:"11px" }}>Lihat di Explorer ↗</a>
+                {tTokenInfo && (
+                  <div style={{ background: C.surface, border: `2px solid ${C.green}`, padding: "10px", marginTop: "10px" }}>
+                    <div style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, marginBottom: "6px" }}>TOKEN DITEMUKAN</div>
+                    <div style={{ fontFamily: FONT, fontSize: "10px", color: C.green }}>{tTokenInfo.symbol}</div>
+                    <div style={{ fontFamily: FONT, fontSize: "8px", color: C.muted, marginTop: "2px" }}>{tTokenInfo.name}</div>
                   </div>
                 )}
-                <div style={{ marginTop:"14px" }}>
-                  <button style={g.btn("primary",tLoading||!tTo||!tAmt)} onClick={execTransfer} disabled={tLoading||!tTo||!tAmt}>
-                    {tLoading?"⟳ Proses…":"📤 Kirim"}
-                  </button>
-                </div>
+                {tTokenInfo && (
+                  <>
+                    <div style={{ marginTop: "12px" }}>
+                      <label style={g.label}>ALAMAT PENERIMA</label>
+                      <input style={g.input} placeholder="0x..." value={tTo} onChange={e => setTTo(e.target.value)} />
+                    </div>
+                    <div style={{ marginTop: "12px" }}>
+                      <label style={g.label}>JUMLAH ({tTokenInfo.symbol})</label>
+                      <input style={g.input} placeholder="0.00" value={tAmt} onChange={e => setTAmt(e.target.value)} />
+                    </div>
+                  </>
+                )}
+                {tHash && tStep === 2 && (
+                  <div style={g.successBox}>
+                    <div style={{ ...g.row, marginBottom: "6px" }}>
+                      <Icon name="check" size={12} color={C.green} />
+                      <span style={{ fontFamily: FONT, fontSize: "8px", color: C.green }}>TRANSFER BERHASIL!</span>
+                    </div>
+                    <a href={explorerUrl(CHAINS_BY_KEY[tChain]?.id, tHash)} target="_blank" rel="noreferrer" style={{ fontFamily: FONT, fontSize: "7px", color: C.blue }}>LIHAT DI EXPLORER</a>
+                  </div>
+                )}
+                {tTokenInfo && (
+                  <div style={{ marginTop: "14px" }}>
+                    <button style={g.btn("primary", tLoading || !tTo || !tAmt)} onClick={execTransfer} disabled={tLoading || !tTo || !tAmt}>
+                      <div style={{ ...g.row, gap: "6px" }}>
+                        <Icon name="transfer" size={10} color={C.white} />
+                        {tLoading ? "PROSES..." : "KIRIM TOKEN"}
+                      </div>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
           {/* ── HISTORY ── */}
-          {page==="history" && (
-            <div style={{ display:"flex", flexDirection:"column", gap:"16px" }}>
-              <SectionHeader icon="📋" title="Riwayat" sub="Semua transaksi yang dilakukan di sesi ini" />
+          {page === "history" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <SectionHeader iconName="history" title="RIWAYAT" sub="SEMUA TRANSAKSI DI SESI INI" />
               <div style={g.card}>
-                {history.length===0 && <div style={{ textAlign:"center", color:C.muted, padding:"32px" }}>Belum ada aktivitas di sesi ini</div>}
-                {history.map((h,i)=>(
-                  <div key={i} style={{ ...g.between, padding:"10px 0", borderBottom:`1px solid ${C.border}` }}>
+                {history.length === 0 && (
+                  <div style={{ textAlign: "center", fontFamily: FONT, fontSize: "8px", color: C.muted, padding: "32px", lineHeight: "2" }}>
+                    BELUM ADA AKTIVITAS<br />DI SESI INI
+                  </div>
+                )}
+                {history.map((h, i) => (
+                  <div key={i} style={{ ...g.between, padding: "10px 0", borderBottom: `2px solid ${C.border}` }}>
                     <div style={g.row}>
-                      <span style={g.tag(h.type==="Bridge"?C.purple:h.type==="Swap"?C.blue:C.green)}>{h.type}</span>
-                      <span style={{ color:C.muted, fontSize:"11px" }}>{h.detail}</span>
+                      <span style={g.tag(h.type === "Bridge" ? C.blueL : h.type === "Swap" ? C.blue : C.cyan)}>{h.type}</span>
+                      <span style={{ fontFamily: FONT, fontSize: "7px", color: C.muted, lineHeight: "1.8" }}>{h.detail}</span>
                     </div>
                     <div style={g.row}>
-                      <span style={{ fontSize:"10px", color:C.muted }}>{h.ts}</span>
-                      {h.hash&&h.hash!=="—" && <a href={explorerUrl(h.chainId,h.hash)} target="_blank" rel="noreferrer" style={{ fontSize:"10px", color:C.blue }}>View ↗</a>}
+                      <span style={{ fontFamily: FONT, fontSize: "7px", color: C.muted }}>{h.ts}</span>
+                      {h.hash && h.hash !== "---" && <a href={explorerUrl(h.chainId, h.hash)} target="_blank" rel="noreferrer" style={{ fontFamily: FONT, fontSize: "7px", color: C.blue }}>VIEW</a>}
                     </div>
                   </div>
                 ))}
@@ -852,46 +1169,30 @@ export default function App() {
             </div>
           )}
 
-          {/* ── PANDUAN API ── */}
-          {page==="guide" && (
-            <div style={{ maxWidth:"680px", display:"flex", flexDirection:"column", gap:"12px" }}>
-              <SectionHeader icon="📖" title="Panduan API & Setup" sub="Semua yang perlu kamu setup agar tool ini berjalan dengan data real" />
+          {/* ── PANDUAN ── */}
+          {page === "guide" && (
+            <div style={{ maxWidth: "680px", display: "flex", flexDirection: "column", gap: "12px" }}>
+              <SectionHeader iconName="guide" title="PANDUAN" sub="CARA PAKAI ARBX TOOL" />
               {[
-                { name:"DexScreener",      color:C.green,  icon:"📊", free:true, note:"Sudah aktif — tidak perlu setup",     steps:["Tidak perlu API key","Sudah dipakai tool ini untuk harga real-time","Rate limit: ~300 req/menit gratis","Docs: docs.dexscreener.com"] },
-                { name:"Across Protocol",  color:C.blue,   icon:"🌉", free:true, note:"Sudah aktif di fitur Bridge",         steps:["Tidak perlu API key","Public endpoint: app.across.to/api/suggested-fees","Support: USDC, USDT, WETH di EVM chains","Docs: docs.across.to"] },
-                { name:"deBridge DLN",     color:C.purple, icon:"🔗", free:true, note:"Sudah aktif di fitur Swap",           steps:["Tidak perlu API key — public REST API","Endpoint: api.dln.trade/v1.0/dln","Support: semua EVM + Solana","Docs: docs.debridge.finance"] },
-                { name:"1inch Swap API",   color:C.blue,   icon:"🦋", free:true, note:"Untuk swap onchain 1 chain",          steps:["Daftar di portal.1inch.dev","Buat project → copy API key","Gratis 100K req/bulan","Endpoint: api.1inch.dev/swap/v6.0/{chainId}/swap"] },
-                { name:"Mayan SDK",        color:"#9945FF",icon:"🔱", free:true, note:"Solana ↔ EVM bridge terbaik",         steps:["npm install @mayanfinance/swap-sdk","Tidak perlu API key","Support Solana ↔ EVM","Docs: mayan.finance/docs"] },
-                { name:"Alchemy RPC",      color:C.yellow, icon:"⚡", free:true, note:"Untuk baca data onchain real-time",   steps:["Daftar di alchemy.com","Buat App → pilih chain","Copy RPC URL → tambah ke MetaMask","Gratis 300M CU/bulan"] },
-                { name:"Tambah Chain Manual", color:C.orange, icon:"🦊", free:true, note:"Wajib untuk Nesa & HyperEVM",     steps:["MetaMask → Settings → Networks → Add Network","Nesa: ChainID 41443, RPC: explorer.nesa.ai","HyperEVM: ChainID 999, RPC: hyperliquid.xyz/docs","Solana: Install Phantom Wallet terpisah"] },
-              ].map(item=>(
-                <div key={item.name} style={{ ...g.card, borderLeft:`3px solid ${item.color}` }}>
-                  <div style={{ ...g.between, marginBottom:"10px" }}>
-                    <div style={g.row}>
-                      <span style={{ fontSize:"18px" }}>{item.icon}</span>
-                      <span style={{ fontWeight:"800", color:"#fff" }}>{item.name}</span>
-                      {item.free && <span style={g.tag(C.green)}>FREE</span>}
-                      <span style={{ fontSize:"10px", color:item.color }}>{item.note}</span>
-                    </div>
-                  </div>
-                  <div style={{ display:"flex", flexDirection:"column", gap:"3px" }}>
-                    {item.steps.map((s,i)=>(
-                      <div key={i} style={{ display:"flex", gap:"8px", fontSize:"11px" }}>
-                        <span style={{ color:item.color, flexShrink:0 }}>{i+1}.</span>
-                        <span style={{ color:C.muted }}>{s}</span>
+                { name: "CARA PAKAI SCANNER", color: C.blue, steps: ["Masukkan contract address (CA) token di tiap chain yang ingin di-scan", "Isi nama token di pojok kanan atas (opsional)", "Klik SCAN SEMUA CHAIN", "Lihat harga di tiap chain dan peluang arbitrasi yang muncul"] },
+                { name: "CARA PAKAI BRIDGE", color: C.cyan, steps: ["Scan token dulu di menu SCANNER", "Buka menu BRIDGE, pilih chain asal dan tujuan", "Pilih bridge yang tersedia, klik BUKA", "Kamu akan diarahkan ke website bridge resmi", "Lakukan transaksi di sana dengan konfirmasi MetaMask"] },
+                { name: "CARA PAKAI SWAP", color: C.blueL, steps: ["Scan token dulu di menu SCANNER", "Buka menu SWAP, pilih chain asal dan tujuan", "Masukkan jumlah, klik CEK QUOTE", "Jika quote oke, klik EKSEKUSI SWAP", "Konfirmasi di MetaMask"] },
+                { name: "CARA PAKAI TRANSFER", color: C.blue, steps: ["Pilih chain tujuan", "Masukkan CA token yang ingin ditransfer", "Klik CEK untuk verifikasi token", "Masukkan alamat penerima dan jumlah", "Klik KIRIM TOKEN dan konfirmasi di MetaMask"] },
+                { name: "KEAMANAN WALLET", color: C.green, steps: ["Website ini TIDAK pernah meminta seed phrase", "Semua transaksi selalu minta konfirmasi di MetaMask", "Kamu selalu punya kontrol penuh atas dana", "Hanya connect wallet jika yakin dengan transaksi", "Test dengan jumlah kecil terlebih dahulu"] },
+                { name: "DATA & API", color: C.cyan, steps: ["Harga real-time dari DexScreener (gratis, tidak perlu API key)", "Bridge via Across, deBridge, Wormhole, Mayan, Stargate, Symbiosis", "Swap via deBridge DLN (tidak perlu API key)", "Semua data diambil langsung dari sumber resmi"] },
+              ].map(item => (
+                <div key={item.name} style={{ ...g.card, borderLeft: `4px solid ${item.color}` }}>
+                  <div style={{ fontFamily: FONT, fontSize: "9px", color: item.color, marginBottom: "12px" }}>{item.name}</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    {item.steps.map((s, i) => (
+                      <div key={i} style={{ display: "flex", gap: "10px", fontFamily: FONT, fontSize: "7px", lineHeight: "1.8" }}>
+                        <span style={{ color: item.color, flexShrink: 0 }}>{i + 1}.</span>
+                        <span style={{ color: C.muted }}>{s}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               ))}
-              <div style={{ ...g.card, background:`${C.yellow}08`, border:`1px solid ${C.yellow}25` }}>
-                <div style={{ fontWeight:"700", color:C.yellow, marginBottom:"8px" }}>⚠️ Checklist sebelum trading</div>
-                {["MetaMask ter-install di browser","Wallet sudah connect ke tool ini","Saldo gas (ETH/BNB/dll) ada di tiap chain yang dipakai","Untuk Nesa & HyperEVM: tambah network manual di MetaMask","Untuk Solana: gunakan Phantom, bukan MetaMask","Test dengan jumlah kecil dulu"].map((item,i)=>(
-                  <div key={i} style={{ ...g.row, marginBottom:"5px", fontSize:"11px", color:C.muted }}>
-                    <span style={{ color:C.green }}>□</span><span>{item}</span>
-                  </div>
-                ))}
-              </div>
             </div>
           )}
 
@@ -900,4 +1201,3 @@ export default function App() {
     </div>
   );
 }
-
