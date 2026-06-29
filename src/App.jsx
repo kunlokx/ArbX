@@ -211,7 +211,7 @@ function BridgeModal({ opp, onClose, tokenName }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN APP
 // ═══════════════════════════════════════════════════════════════════════════════
-export default function ArbXUnified() {
+export default function App() {
   const [page, setPage]       = useState("scanner");
   const [wallet, setWallet]   = useState(null);
   const [chainId, setChainId] = useState(null);
