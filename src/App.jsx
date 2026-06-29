@@ -70,11 +70,13 @@ const THEMES = {
 
 // `C` is mutated per active theme so all existing `C.*` references keep working unchanged.
 let C = { ...THEMES.dark };
-const applyTheme = (name) => { Object.assign(C, THEMES[name] || THEMES.dark); };
+let g = {}; // diisi oleh buildG()
+const buildG = () => { g = makeG(); };
+const applyTheme = (name) => { Object.assign(C, THEMES[name] || THEMES.dark); buildG(); };
 
 const FONT = "'Press Start 2P', monospace";
 
-const g = {
+const makeG = () => ({
   root: {
     background: C.bg,
     minHeight: "100vh",
@@ -252,7 +254,9 @@ const g = {
   sectionSub: { fontSize: "8px", fontFamily: FONT, color: C.muted, marginBottom: "16px", lineHeight: "1.8" },
   successBox: { background: `${C.green}08`, border: `2px solid ${C.green}`, padding: "14px", marginTop: "14px" },
   warnBox: { background: `${C.yellow}08`, border: `2px solid ${C.yellow}`, padding: "12px", marginTop: "12px" },
-};
+});
+
+buildG();
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PIXEL ART SVG ICONS (8-bit style)
@@ -1126,7 +1130,7 @@ function AppInner() {
   const analyzedOpps = useMemo(() => opportunities.map(o => ({
     ...o,
     analysis: analyzeOpportunity(o, { tradeUsd: settings.tradeSize, slippagePct: sSlippage }),
-  })).filter(o => o.analysis.netPct >= (settings.minNetFilter || -Infinity)),
+  })).filter(o => o.analysis.netPct >= (settings.minNetFilter ?? -Infinity)),
   [opportunities, settings.tradeSize, settings.minNetFilter, sSlippage]);
 
   const bestRoute = useMemo(() => {
@@ -1174,7 +1178,8 @@ function AppInner() {
       const tx = await res.json();
       if (!tx.tx) throw new Error("Tidak ada tx data");
       toast("MENGIRIM SWAP...", "warn");
-      const hash = await sendTx({ from: wallet, to: tx.tx.to, data: tx.tx.data, value: tx.tx.value || "0x0", gas: "0x493E0" });
+      const ov = await gasOverrides();
+      const hash = await sendTx({ from: wallet, to: tx.tx.to, data: tx.tx.data, value: tx.tx.value || "0x0", gas: "0x493E0", ...ov });
       setSHash(hash); setSStep(2);
       addHistory({ type: "Swap", detail: `${sAmt} ${sQuote.fromToken.symbol} >> ${sQuote.toToken.symbol}: ${chainName(sFrom)} >> ${chainName(sTo)}`, hash, chainId: fromChainId, retry: { kind: "swap" } });
       if (settings.notifications) desktopNotify("Swap Berhasil", `${sAmt} ${sQuote.fromToken.symbol} → ${sQuote.toToken.symbol}`);
@@ -1198,14 +1203,16 @@ function AppInner() {
       run: doExecSwap,
     });
   };
-
-  const swapPctOf = (frac) => {
-    const bal = sFrom === (CHAINS[chainId]?.dex || "") ? balance : null;
-    // We don't have token balance via RPC here; use wallet native balance only as helper if same native.
-    if (bal != null) setSAmt((bal * frac).toFixed(6));
-    else toast("BALANCE TOKEN TIDAK TERSEDIA - isi manual", "warn");
-    setSStep(0);
-  };
+const swapPctOf = async (frac) => {
+  if (!wallet || !sFrom) { toast("CONNECT & PILIH CHAIN DULU", "warn"); return; }
+  const tok = scannedTokens[sFrom];
+  if (!tok) { toast("TOKEN TIDAK ADA", "warn"); return; }
+  if (chainId !== CHAINS_BY_KEY[sFrom]?.id) { toast("SWITCH KE CHAIN ASAL DULU", "warn"); return; }
+  const bal = await erc20BalanceOf(tok.ca, wallet, 18);
+  if (bal == null) { toast("GAGAL BACA SALDO TOKEN", "error"); return; }
+  setSAmt((bal * frac).toFixed(6)); setSStep(0);
+};
+  
   const reverseSwap = () => { const f = sFrom, t = sTo; setSFrom(t); setSTo(f); setSStep(0); setSQuote(null); };
 
   // ── Transfer ──
@@ -1251,7 +1258,8 @@ function AppInner() {
       const dec = tTokenInfo.decimals || 18;
       const amt = BigInt(Math.round(parseFloat(tAmt) * 10 ** dec)).toString(16).padStart(64, "0");
       const data = "0xa9059cbb" + recipient.replace("0x", "").padStart(64, "0") + amt;
-      const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA60" });
+      const ov = await gasOverrides();
+const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA60", ...ov });
       setTHash(hash); setTStep(2);
       addHistory({ type: "Transfer", detail: `${tAmt} ${tTokenInfo.symbol} >> ${sh(recipient)}`, hash, chainId: chainData?.id });
       // Recent + de-dup
@@ -1287,8 +1295,14 @@ function AppInner() {
     try { const text = await navigator.clipboard.readText(); setTTo(text.trim()); toast("ALAMAT DITEMPEL", "success"); }
     catch { toast("GAGAL BACA CLIPBOARD", "error"); }
   };
-  const transferMax = () => { if (balance != null) setTAmt(String(balance)); else toast("BALANCE TIDAK TERSEDIA", "warn"); };
-  const saveToAddressBook = () => {
+   const transferMax = async () => {
+  if (!wallet || !tCA || !tTokenInfo) { toast("CEK TOKEN DULU", "warn"); return; }
+  if (chainId !== CHAINS_BY_KEY[tChain]?.id) { toast("SWITCH KE CHAIN INI DULU", "warn"); return; }
+  const bal = await erc20BalanceOf(sanitizeCA(tCA), wallet, tTokenInfo.decimals || 18);
+  if (bal == null) { toast("GAGAL BACA SALDO", "error"); return; }
+  setTAmt(String(bal));
+};
+    const saveToAddressBook = () => {
     const a = (tTo || "").trim();
     if (!isValidEvm(a) && !isValidEns(a)) { toast("ALAMAT TIDAK VALID", "warn"); return; }
     const label = prompt("Label untuk alamat ini:") || sh(a);
@@ -1301,8 +1315,23 @@ function AppInner() {
     if (v && (isValidEvm(v.trim()) || isValidEns(v.trim()))) { setTTo(v.trim()); toast("ALAMAT DARI QR", "success"); }
     else if (v) toast("QR BUKAN ALAMAT VALID", "error");
   };
+  const erc20BalanceOf = async (ca, owner, dec = 18) => {
+  try {
+    const data = "0x70a08231" + owner.replace("0x", "").padStart(64, "0");
+    const hex = await window.ethereum.request({ method: "eth_call", params: [{ to: ca, data }, "latest"] });
+    return Number(BigInt(hex)) / 10 ** dec;
+  } catch { return null; }
+};
 
   const sendTx = (tx) => window.ethereum.request({ method: "eth_sendTransaction", params: [tx] });
+  const gasOverrides = async () => {
+  try {
+    const gp = await window.ethereum.request({ method: "eth_gasPrice" });
+    const mult = { slow: 0.9, standard: 1, fast: 1.25 }[settings.gasPreference] || 1;
+    const scaled = BigInt(Math.round(Number(BigInt(gp)) * mult));
+    return { gasPrice: "0x" + scaled.toString(16) };
+  } catch { return {}; }
+};
   const explorerUrl = (cid, hash) => `${CHAINS[cid]?.explorer || "https://etherscan.io"}/tx/${hash}`;
   const curChain = CHAINS[chainId] || Object.values(CHAINS_BY_KEY).find(c => c.id === chainId);
   const knownNetwork = !!curChain;
@@ -1772,7 +1801,7 @@ function AppInner() {
                       <label style={g.label}>CHAIN ASAL</label>
                       <select style={g.select} value={sFrom} onChange={e => { setSFrom(e.target.value); setSStep(0); setSQuote(null); }}>
                         <option value="">-- PILIH --</option>
-                        {scannedChainKeys.map(k => (
+                        {scannedChainKeys.filter(k => CHAINS_BY_KEY[k]?.type === "evm").map(k => (
                           <option key={k} value={k}>{CHAINS_BY_KEY[k]?.name} ({scannedTokens[k]?.symbol})</option>
                         ))}
                       </select>
@@ -1781,7 +1810,7 @@ function AppInner() {
                       <label style={g.label}>CHAIN TUJUAN</label>
                       <select style={g.select} value={sTo} onChange={e => { setSTo(e.target.value); setSStep(0); setSQuote(null); }}>
                         <option value="">-- PILIH --</option>
-                        {scannedChainKeys.filter(k => k !== sFrom).map(k => (
+                        {scannedChainKeys.filter(k => k !== sFrom && CHAINS_BY_KEY[k]?.type === "evm").map(k => (
                           <option key={k} value={k}>{CHAINS_BY_KEY[k]?.name} ({scannedTokens[k]?.symbol})</option>
                         ))}
                       </select>
