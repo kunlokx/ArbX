@@ -588,11 +588,28 @@ class ErrorBoundary extends Component {
             ...g.row,
             marginBottom: "12px",
           }}
-        >
-              <Icon name="warning" size={16} color={C.red} />
-              <span style= fontFamily: FONT, fontSize: "12px", color: C.red >TERJADI ERROR</span>
-            </div>
-            <div style= fontFamily: FONT, fontSize: "8px", color: C.muted, lineHeight: "2", marginBottom: "14px" >
+         >
+  <Icon name="warning" size={16} color={C.red} />
+  <span
+    style={{
+      fontFamily: FONT,
+      fontSize: "12px",
+      color: C.red,
+    }}
+  >
+    TERJADI ERROR
+  </span>
+</div>
+
+<div
+  style={{
+    fontFamily: FONT,
+    fontSize: "8px",
+    color: C.muted,
+    lineHeight: "2",
+    marginBottom: "14px",
+  }}
+>
               Aplikasi mengalami kesalahan tak terduga. Data wallet kamu AMAN — aplikasi ini non-custodial dan tidak menyimpan kunci apa pun.
             </div>
             <div style= fontFamily: FONT, fontSize: "7px", color: C.red, lineHeight: "1.8", marginBottom: "14px", wordBreak: "break-word" >
