@@ -80,10 +80,12 @@ const makeG = () => ({
   topbar: {
     background: C.surface,
     borderBottom: `2px solid ${C.border2}`,
-    padding: "0 16px",
+    padding: "8px 16px",
     display: "flex",
     alignItems: "center",
-    height: "52px",
+    flexWrap: "wrap",
+    rowGap: "6px",
+    minHeight: "52px",
     flexShrink: 0,
     position: "sticky",
     top: 0,
@@ -246,12 +248,12 @@ const makeG = () => ({
   warnBox: { background: `${C.yellow}08`, border: `2px solid ${C.yellow}`, padding: "12px", marginTop: "12px" },
 });
 
+const FONT = "'Press Start 2P', monospace";
+
 let C = { ...THEMES.dark };
 const buildG = () => { Object.assign(g, makeG()); };
 const g = makeG();
 const applyTheme = (name) => { Object.assign(C, THEMES[name] || THEMES.dark); Object.assign(g, makeG()); };
-
-const FONT = "'Press Start 2P', monospace";
 
 
 
@@ -456,6 +458,11 @@ const sendDiscord = async (webhook, text) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 // PRICE / TOKEN FETCHERS (now hardened with retry + cache + abort)
 // ═══════════════════════════════════════════════════════════════════════════════
+// Minimum liquidity (USD) for a price to be considered trustworthy.
+// Pairs below this threshold are routinely stale/illiquid on DexScreener and
+// produce nonsensical "arbitrage" spreads (the root cause of the $0 / 50,000,000% bug).
+const MIN_TRUSTED_LIQUIDITY_USD = 2000;
+
 async function fetchDexPrice(chainKey, ca, signal) {
   if (!ca || ca.length < 6) return null;
   const cacheKey = `dex:${ca}`;
@@ -470,17 +477,43 @@ async function fetchDexPrice(chainKey, ca, signal) {
       cacheSet(cacheKey, data);
     }
     if (!data.pairs?.length) return null;
-    const filtered = data.pairs.filter(p => p.chainId === dexKey || p.chainId === String(dexKey));
-    const best = (filtered.length ? filtered : data.pairs).sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0))[0];
+
+    // Only keep pairs on the requested chain AND whose base token address
+    // actually matches the CA we searched for (DexScreener sometimes returns
+    // unrelated pairs sharing the same query, especially for short/common CAs).
+    const caLower = ca.trim().toLowerCase();
+    let candidates = data.pairs.filter(p => {
+      const sameChain = p.chainId === dexKey || p.chainId === String(dexKey);
+      const sameToken = (p.baseToken?.address || "").toLowerCase() === caLower;
+      return sameChain && sameToken;
+    });
+    // Fallback: same chain, any token match relaxed (still same chain only — never cross-chain)
+    if (!candidates.length) {
+      candidates = data.pairs.filter(p => p.chainId === dexKey || p.chainId === String(dexKey));
+    }
+    if (!candidates.length) return null;
+
+    const best = candidates.sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0))[0];
+
+    const price = parseFloat(best.priceUsd);
+    const liquidity = best.liquidity?.usd || 0;
+
+    // Reject garbage data outright instead of returning a misleading "$0" price.
+    if (!Number.isFinite(price) || price <= 0) return null;
+
+    const lowLiquidity = liquidity < MIN_TRUSTED_LIQUIDITY_USD;
+
     return {
-      price: parseFloat(best.priceUsd),
-      liquidity: best.liquidity?.usd,
+      price,
+      liquidity,
+      lowLiquidity,
       volume24h: best.volume?.h24,
       dex: best.dexId,
       priceChange24h: best.priceChange?.h24,
       pair: best.pairAddress,
       name: best.baseToken?.name || "",
       symbol: best.baseToken?.symbol || "",
+      verifiedAddress: (best.baseToken?.address || "").toLowerCase() === caLower,
     };
   } catch (e) { if (signal?.aborted) throw e; return null; }
 }
@@ -701,12 +734,11 @@ function BridgeModal({ opp, onClose, scannedTokens, toast }) {
             <span style={g.chip(fromChain?.color || C.blue)}>{fromChain?.name || opp.buyChain}</span>
             <span style={{ color: C.muted, fontFamily: FONT, fontSize: "8px" }}>{">>"}</span>
             <span style={g.chip(toChain?.color || C.blueL)}>{toChain?.name || opp.sellChain}</span>
-            <span style={{ marginLeft: "auto", ...g.tag(C.green) >+{opp.spread}%</span }}>
+            <span style={{ marginLeft: "auto", ...g.tag(C.green) }}>+{opp.spread}%</span>
           </div>
-          <div style={{ marginTop: "8px", fontSize: "8px", fontFamily: FONT, color: C.muted, lineHeight: "1.8" }} >
-            TOKEN: <b style={{ color: C.white }}>{tokenSymbol}</b>\
-
-                        BELI: <span style={{ color: C.green }}>${fmt(opp.buyPrice)}</span> | JUAL: <span style={{ color: C.yellow }}>${fmt(opp.sellPrice)}</span>
+          <div style={{ marginTop: "8px", fontSize: "8px", fontFamily: FONT, color: C.muted, lineHeight: "1.8" }}>
+            TOKEN: <b style={{ color: C.white }}>{tokenSymbol}</b><br />
+            BELI: <span style={{ color: C.green }}>${fmt(opp.buyPrice)}</span> | JUAL: <span style={{ color: C.yellow }}>${fmt(opp.sellPrice)}</span>
           </div>
         </div>
         {compatible.length === 0 ? (
@@ -771,11 +803,14 @@ function BridgeModal({ opp, onClose, scannedTokens, toast }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 function AppInner() {
   useEffect(() => {
-    const link = document.createElement("link");
-    link.href = "https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap";
-    link.rel = "stylesheet";
-    document.head.appendChild(link);
-    return () => { try { document.head.removeChild(link); } catch {} };
+    // Use a <style> tag with @import instead of a <link> element.
+    // This avoids React 18 StrictMode's effect-cleanup-then-rerun cycle
+    // removing the link before the font has a chance to load.
+    if (document.getElementById("arbx-font-style")) return;
+    const style = document.createElement("style");
+    style.id = "arbx-font-style";
+    style.textContent = `@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');`;
+    document.head.appendChild(style);
   }, []);
   const [page, setPage] = useState("scanner");
   const [wallet, setWallet] = useState(null);
@@ -1035,10 +1070,13 @@ function AppInner() {
 
     if (ctrl.signal.aborted) { setScanning(false); toast("SCAN DIBATALKAN", "warn"); return; }
 
-    // Build scannedTokens map
+    // Build scannedTokens map — exclude untrustworthy (zero/low-liquidity) results
+    // so Bridge/Swap/Transfer never offer a token whose price we don't trust.
     const tokMap = {};
     Object.entries(fetched).forEach(([chain, d]) => {
-      if (d?.price) tokMap[chain] = { ca: d.ca, symbol: d.symbol || tokenName || "TOKEN", name: d.name || tokenName || "Token", price: d.price };
+      if (d?.price > 0 && (d.liquidity || 0) >= MIN_TRUSTED_LIQUIDITY_USD) {
+        tokMap[chain] = { ca: d.ca, symbol: d.symbol || tokenName || "TOKEN", name: d.name || tokenName || "Token", price: d.price };
+      }
     });
     setScannedTokens(tokMap);
 
@@ -1046,11 +1084,26 @@ function AppInner() {
     if (scannedChains.length >= 1) { setBFrom(scannedChains[0]); setSFrom(scannedChains[0]); setTChain(scannedChains[0]); }
     if (scannedChains.length >= 2) { setBTo(scannedChains[1]); setSTo(scannedChains[1]); }
 
-    const prices = Object.entries(fetched).filter(([, v]) => v?.price);
+    // Only trust prices backed by real liquidity. This is the fix for the
+    // "$0 buy price / +50,000,000% spread" bug: a near-zero or unverified
+    // price from a thin/wrong pair must never enter the opportunity list.
+    const prices = Object.entries(fetched).filter(([, v]) =>
+      v?.price > 0 &&
+      Number.isFinite(v.price) &&
+      (v.liquidity || 0) >= MIN_TRUSTED_LIQUIDITY_USD
+    );
+    const skippedLowLiq = Object.entries(fetched).filter(([, v]) => v?.price > 0 && (v.liquidity || 0) < MIN_TRUSTED_LIQUIDITY_USD).length;
+
     const opps = [];
     for (let i = 0; i < prices.length; i++) for (let j = i + 1; j < prices.length; j++) {
       const [cA, dA] = prices[i], [cB, dB] = prices[j];
-      const spread = Math.abs(dA.price - dB.price) / Math.min(dA.price, dB.price) * 100;
+      const lower = Math.min(dA.price, dB.price);
+      if (lower <= 0) continue; // guard against div-by-zero producing Infinity/NaN
+      const spread = Math.abs(dA.price - dB.price) / lower * 100;
+      // A real, executable cross-chain/cross-DEX arbitrage on an established
+      // token essentially never exceeds ~200%. Anything beyond that is a sign
+      // of bad/stale data (wrong pair, decimals mismatch, etc) — drop it.
+      if (!Number.isFinite(spread) || spread <= 0 || spread > 200) continue;
       const [buyC, sellC, buyD, sellD] = dA.price < dB.price ? [cA, cB, dA, dB] : [cB, cA, dB, dA];
       opps.push({
         buyChain: buyC, sellChain: sellC, buyPrice: buyD.price, sellPrice: sellD.price,
@@ -1065,6 +1118,10 @@ function AppInner() {
     const ts = new Date().toLocaleTimeString("id-ID", { hour12: false });
     setLastScan(ts);
     setScanProgress(100);
+
+    if (skippedLowLiq > 0) {
+      toast(`${skippedLowLiq} CHAIN DILEWATI: LIKUIDITAS DI BAWAH $${MIN_TRUSTED_LIQUIDITY_USD.toLocaleString()}`, "warn");
+    }
 
     setScanHistory(p => [{ ts, date: Date.now(), token: tokenName || (Object.values(tokMap)[0]?.symbol) || "TOKEN", chains: prices.length, opps: sorted.length, best: sorted[0]?.spread || 0 }, ...p.slice(0, 49)]);
 
@@ -1362,7 +1419,7 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
           <Icon name="arb" size={20} color={C.cyan} />
           ARB<span style={{ color: C.cyan }}>X</span>
         </div>
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "10px" }} >
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", rowGap: "6px" }} >
           {!online && <span style={g.tag(C.red)}>OFFLINE</span>}
           {wallet && curChain && <span style={g.tag(curChain.color || C.blue)}>{curChain.name}</span>}
           {wallet && !knownNetwork && <span style={g.tag(C.yellow)}>NETWORK ASING</span>}
@@ -1454,19 +1511,29 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
                           value={val}
                           onChange={e => setCaInputs(p => ({ ...p, [key]: e.target.value }))}
                           placeholder={chain.type === "svm" ? "SOLANA ADDRESS..." : "0x..."}
-                          style={{ ...g.input, fontSize: "8px", padding: "8px 10px", borderColor: valid ? C.border2 : C.red​​ }}
+                          style={{ ...g.input, fontSize: "8px", padding: "8px 10px", borderColor: valid ? C.border2 : C.red }}
                         />
                         {!valid && <div style={{ fontFamily: FONT, fontSize: "7px", color: C.red, marginTop: "4px" }}>ADDRESS TIDAK VALID</div>}
                         {scanResults[key] && !scanResults[key].error && (
-                          <div style={{ marginTop: "8px", display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }} >
-                            <span style={{ fontFamily: FONT, fontSize: "10px", color: C.green >${fmt(scanResults[key].price)}</span }}>
+                          <div style={{ marginTop: "8px", display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
+                            <span style={{ fontFamily: FONT, fontSize: "10px", color: C.green }}>${fmt(scanResults[key].price)}</span>
                             {scanResults[key].symbol && <span style={g.tag(chain.color)}>{scanResults[key].symbol}</span>}
                             {scanResults[key].dex && <span style={{ fontFamily: FONT, fontSize: "7px", color: C.muted }}>{scanResults[key].dex}</span>}
-                            {scanResults[key].liquidity && <span style={{ fontFamily: FONT, fontSize: "7px", color: C.muted }}>LIQ: ${(scanResults[key].liquidity / 1000).toFixed(1)}K</span>}
+                            {scanResults[key].liquidity != null && (
+                              <span style={{ fontFamily: FONT, fontSize: "7px", color: scanResults[key].lowLiquidity ? C.red : C.muted }}>
+                                LIQ: ${(scanResults[key].liquidity / 1000).toFixed(1)}K
+                              </span>
+                            )}
                             {scanResults[key].priceChange24h != null && (
-                              <span style={{ fontFamily: FONT, fontSize: "7px", color: scanResults[key].priceChange24h >= 0 ? C.green : C.red }} >
+                              <span style={{ fontFamily: FONT, fontSize: "7px", color: scanResults[key].priceChange24h >= 0 ? C.green : C.red }}>
                                 {scanResults[key].priceChange24h >= 0 ? "+" : ""}{Math.abs(scanResults[key].priceChange24h).toFixed(2)}%
                               </span>
+                            )}
+                            {scanResults[key].lowLiquidity && (
+                              <span style={g.tag(C.red)}>LIKUIDITAS RENDAH - HARGA TIDAK AKURAT</span>
+                            )}
+                            {scanResults[key].verifiedAddress === false && (
+                              <span style={g.tag(C.yellow)}>PAIR TIDAK TERVERIFIKASI</span>
                             )}
                           </div>
                         )}
@@ -1544,12 +1611,12 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
                           <span style={{ ...g.tag(a.netPct > 0 ? C.green : C.red), fontSize: "9px" }}>NET {a.netPct > 0 ? "+" : ""}{a.netPct}%</span>
                         </div>
 
-                        <div style={{ ...g.row, marginTop: "8px", fontFamily: FONT, fontSize: "8px", color: C.muted, flexWrap: "wrap", gap: "6px", lineHeight: "1.8" }} >
-                          <span>BELI: <b style={{ color: C.green >${fmt(opp.buyPrice)}</b }}></span>
+                        <div style={{ ...g.row, marginTop: "8px", fontFamily: FONT, fontSize: "8px", color: C.muted, flexWrap: "wrap", gap: "6px", lineHeight: "1.8" }}>
+                          <span>BELI: <b style={{ color: C.green }}>${fmt(opp.buyPrice)}</b></span>
                           <span>|</span>
-                          <span>JUAL: <b style={{ color: C.yellow >${fmt(opp.sellPrice)}</b }}></span>
+                          <span>JUAL: <b style={{ color: C.yellow }}>${fmt(opp.sellPrice)}</b></span>
                           <span>|</span>
-                          <span>GROSS: <b style={{ color: C.text >+{opp.spread}%</b }}></span>
+                          <span>GROSS: <b style={{ color: C.text }}>+{opp.spread}%</b></span>
                           {opp.buyLiq && <span>| LIQ: ${(opp.buyLiq / 1000).toFixed(0)}K</span>}
                         </div>
 
@@ -1635,7 +1702,7 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
                         </div>
                         {result?.symbol && <div style={{ fontFamily: FONT, fontSize: "8px", color: C.cyan, marginTop: "6px" }}>{result.symbol}</div>}
                         {result?.price && (
-                          <div style={{ fontFamily: FONT, fontSize: "10px", color: C.green, marginTop: "4px" >${fmt(result.price)}</div }}>
+                          <div style={{ fontFamily: FONT, fontSize: "10px", color: C.green, marginTop: "4px" }}>${fmt(result.price)}</div>
                         )}
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "10px" }} >
                           {dexList.map(d => (
@@ -1971,7 +2038,7 @@ const hash = await sendTx({ from: wallet, to: sanitizeCA(tCA), data, gas: "0xEA6
               <SectionHeader iconName="history" title="RIWAYAT" sub="SEMUA TRANSAKSI DI SESI INI (TERSIMPAN LOKAL)" />
               <div style={g.card}>
                 <div style={{ ...g.row, flexWrap: "wrap", marginBottom: "12px" }} >
-                  <input style={{ ...g.input, flex: 1 }} minWidth: "160px"  placeholder="CARI..." value={hSearch} onChange={e => setHSearch(e.target.value)} />
+                  <input style={{ ...g.input, flex: 1, minWidth: "160px" }} placeholder="CARI..." value={hSearch} onChange={e => setHSearch(e.target.value)} />
                   <select style={{ ...g.select, width: "140px" }}  value={hFilter} onChange={e => setHFilter(e.target.value)}>
                     <option value="all">SEMUA</option>
                     <option value="Swap">SWAP</option>
@@ -2135,4 +2202,4 @@ export default function App() {
       <AppInner />
     </ErrorBoundary>
   );
-                        }
+          }
